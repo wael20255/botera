@@ -1,5 +1,5 @@
 [build]
-  publish = "."
+  publish = "Botera-Final-Live-Orders"
   command = ""
 
 [build.environment]
