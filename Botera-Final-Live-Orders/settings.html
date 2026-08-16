@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>الإعدادات | Botera Co.</title>
+  <link rel="stylesheet" href="assets/css/tokens.css"><link rel="stylesheet" href="assets/css/base.css"><link rel="stylesheet" href="assets/css/layout.css"><link rel="stylesheet" href="assets/css/daterange.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body data-page="settings" data-title="الإعدادات">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="sidebar-logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#06240f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="16" height="11" rx="3"/><circle cx="8.5" cy="14.5" r="1.4" fill="#06240f" stroke="none"/><circle cx="15.5" cy="14.5" r="1.4" fill="#06240f" stroke="none"/><path d="M12 9V5"/><circle cx="12" cy="3.5" r="1.5" fill="#06240f" stroke="none"/></svg></span>
+      botera
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="nav-item" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</a>
+      <a href="conversations.html" class="nav-item" data-page="conversations" data-requires="can_view_conversations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Conversations</a>
+      <a href="customers.html" class="nav-item" data-page="customers" data-requires="can_view_customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</a>
+      <a href="orders.html" class="nav-item" data-page="orders" data-requires="can_view_orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Orders</a>
+      <a href="insights.html" class="nav-item" data-page="insights" data-requires="can_view_insights"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>Insights</a>
+      <a href="automation.html" class="nav-item" data-page="automation" data-requires="can_view_automation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A6 6 0 1 0 8.5 12.5c.75.75 1.22 1.5 1.41 2.5"/></svg>Automation</a>
+    </nav>
+    <a href="settings.html" class="nav-item nav-item-bottom" data-page="settings" data-requires="can_view_settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</a>
+  </aside>
+  <header class="topbar">
+    <button class="menu-toggle" id="menuToggle" aria-label="Open menu">☰</button>
+    <div class="topbar-title" id="pageTitle"></div>
+    <div class="daterange-bar" id="dateRangeRoot"></div>
+    <div class="workspace-chip" id="workspaceChip" style="margin-inline-start:var(--space-3);">
+      <span class="workspace-avatar" id="workspaceAvatar"></span>
+      <div class="workspace-meta">
+        <span class="workspace-company" id="workspaceCompany"></span>
+        <span class="workspace-owner" id="workspaceOwner"></span>
+      </div>
+    </div>
+    <button class="btn-secondary" id="logoutBtn" style="margin-inline-start:var(--space-3);">تسجيل الخروج</button>
+  </header>
+  <main class="page-main"><div class="page-heading"><h1>الإعدادات</h1><p>حالة مساحة العمل والخدمات المتصلة.</p></div><div class="settings-tabs" role="tablist"><button class="filter-button active" data-tab="profile" role="tab">Profile</button><button class="filter-button" data-tab="integrations" role="tab">Integrations</button><button class="filter-button" data-tab="notifications" role="tab">Notifications</button><button class="filter-button" data-tab="team" role="tab" id="teamTabBtn">Team</button><button class="filter-button" data-tab="products" role="tab" id="productsTabBtn">Products</button><button class="filter-button" data-tab="finance" role="tab" id="financeTabBtn">Shipping & Ads</button></div><section class="card" id="profileTab" data-tab-panel="profile"></section><section class="card hidden" id="integrationsTab" data-tab-panel="integrations"></section><section class="card hidden" id="notificationsTab" data-tab-panel="notifications"></section><section class="card hidden" id="teamTab" data-tab-panel="team"></section><section class="card hidden" id="productsTab" data-tab-panel="products"></section><section class="card hidden" id="financeTab" data-tab-panel="finance"></section></main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/lib/supabase-client.js"></script><script src="assets/lib/realtime.js"></script><script src="assets/lib/store.js"></script><script src="assets/lib/format.js"></script><script src="assets/lib/daterange.js"></script><script src="assets/services/auth-service.js"></script><script src="assets/services/customers-service.js"></script><script src="assets/services/orders-service.js"></script><script src="assets/services/notifications-service.js"></script><script src="assets/services/team-service.js"></script><script src="assets/services/products-service.js"></script><script src="assets/hooks/use-auth.js"></script><script src="assets/hooks/use-async.js"></script><script src="assets/js/layout.js"></script><script src="assets/js/settings.js"></script>
+</body>
+</html>

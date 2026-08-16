@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل شركة جديدة | botera</title>
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/auth.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="card register-card">
+      <div class="login-logo">
+        <span class="sidebar-logo-icon" style="width:34px;height:34px;"><svg viewBox="0 0 24 24" fill="none" stroke="#06240f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="16" height="11" rx="3"/><circle cx="8.5" cy="14.5" r="1.4" fill="#06240f" stroke="none"/><circle cx="15.5" cy="14.5" r="1.4" fill="#06240f" stroke="none"/><path d="M12 9V5"/><circle cx="12" cy="3.5" r="1.5" fill="#06240f" stroke="none"/></svg></span>
+        botera
+      </div>
+      <p class="auth-subtitle">أنشئ مساحة عمل شركتك — بيانات شركتك معزولة تمامًا عن أي شركة أخرى على المنصة.</p>
+
+      <form id="registerForm" novalidate>
+        <div class="form-section-title">بيانات الشركة</div>
+
+        <div class="form-field">
+          <label class="form-label" for="companyName">اسم الشركة</label>
+          <input class="form-input" id="companyName" type="text" required autocomplete="organization">
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="companyLogo">شعار الشركة (اختياري)</label>
+          <div class="logo-upload">
+            <div class="logo-upload-preview" id="logoPreview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+            </div>
+            <input class="btn-secondary" type="button" id="logoTrigger" value="اختر صورة">
+            <input type="file" id="companyLogo" accept="image/*">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-field">
+            <label class="form-label" for="industry">المجال</label>
+            <select class="form-input" id="industry" required>
+              <option value="" disabled selected>اختر المجال</option>
+              <option value="ecommerce">تجارة إلكترونية عامة</option>
+              <option value="fashion">أزياء وملابس</option>
+              <option value="beauty">تجميل وعناية</option>
+              <option value="food">أطعمة ومشروبات</option>
+              <option value="electronics">إلكترونيات</option>
+              <option value="home">منزل وأثاث</option>
+              <option value="health">صحة وعافية</option>
+              <option value="other">أخرى</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="country">الدولة</label>
+            <select class="form-input" id="country" required>
+              <option value="" disabled selected>اختر الدولة</option>
+              <option value="EG">مصر</option>
+              <option value="SA">السعودية</option>
+              <option value="AE">الإمارات</option>
+              <option value="KW">الكويت</option>
+              <option value="QA">قطر</option>
+              <option value="JO">الأردن</option>
+              <option value="MA">المغرب</option>
+              <option value="OTHER">أخرى</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-field">
+            <label class="form-label" for="timezone">المنطقة الزمنية</label>
+            <select class="form-input" id="timezone" required>
+              <option value="Africa/Cairo">القاهرة (GMT+2)</option>
+              <option value="Asia/Riyadh">الرياض (GMT+3)</option>
+              <option value="Asia/Dubai">دبي (GMT+4)</option>
+              <option value="Asia/Kuwait">الكويت (GMT+3)</option>
+              <option value="Asia/Qatar">الدوحة (GMT+3)</option>
+              <option value="Asia/Amman">عمّان (GMT+3)</option>
+              <option value="Africa/Casablanca">الدار البيضاء (GMT+1)</option>
+              <option value="UTC">توقيت غرينتش (UTC)</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="currency">العملة</label>
+            <select class="form-input" id="currency" required>
+              <option value="EGP">جنيه مصري (EGP)</option>
+              <option value="SAR">ريال سعودي (SAR)</option>
+              <option value="AED">درهم إماراتي (AED)</option>
+              <option value="KWD">دينار كويتي (KWD)</option>
+              <option value="QAR">ريال قطري (QAR)</option>
+              <option value="JOD">دينار أردني (JOD)</option>
+              <option value="MAD">درهم مغربي (MAD)</option>
+              <option value="USD">دولار أمريكي (USD)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="form-label" for="language">لغة النظام</label>
+          <select class="form-input" id="language" required>
+            <option value="ar">العربية</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+
+        <div class="form-section-title">بيانات الحساب (المالك الأول)</div>
+
+        <div class="form-field">
+          <label class="form-label" for="fullName">الاسم الكامل</label>
+          <input class="form-input" id="fullName" type="text" required autocomplete="name">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="email">الإيميل</label>
+          <input class="form-input" id="email" type="email" required autocomplete="email">
+        </div>
+        <div class="form-grid-2">
+          <div class="form-field">
+            <label class="form-label" for="password">كلمة السر</label>
+            <input class="form-input" id="password" type="password" required minlength="8" autocomplete="new-password">
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="confirmPassword">تأكيد كلمة السر</label>
+            <input class="form-input" id="confirmPassword" type="password" required minlength="8" autocomplete="new-password">
+          </div>
+        </div>
+
+        <div class="form-error" id="registerError" style="display:none;"></div>
+        <button class="btn" type="submit" id="registerSubmit" style="width:100%;margin-top:var(--space-2);">إنشاء الشركة</button>
+      </form>
+
+      <div class="auth-links">
+        <span class="muted-link">عندك حساب بالفعل؟ <a href="login.html">سجّل دخولك</a></span>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/lib/supabase-client.js"></script><script src="assets/lib/realtime.js"></script>
+<script src="assets/lib/store.js"></script>
+<script src="assets/services/auth-service.js"></script>
+<script src="assets/js/register.js"></script>
+</body>
+</html>

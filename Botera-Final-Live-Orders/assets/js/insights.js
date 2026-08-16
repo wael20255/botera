@@ -1,0 +1,203 @@
+(async function init() {
+  const profile = await useAuth.ensureAuthenticated({ requiredPermission: "can_view_insights" });
+  if (!profile) return;
+  setupLayout(profile);
+  startBoteraRealtime?.(profile);
+  DateRange.init();
+
+  let allOrders = [], allCampaigns = [], allAdExpenses = [], loaded = false;
+  let growthChart = null;
+
+  const metricsEl = document.getElementById("reportsMetrics");
+  const growthArea = document.getElementById("growthChartArea");
+  const adsReportArea = document.getElementById("adsReportArea");
+
+  // Numbers on this page are shown in Western/English digits — a
+  // page-scoped formatter, kept local to this file only, so the rest of
+  // the app (which uses formatMoney()'s Arabic-Indic digits everywhere
+  // else) is completely unaffected.
+  function formatMoneyEn(amount, currency = "EGP") {
+    return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(Number(amount || 0))} ${currency}`;
+  }
+
+  // The 8 boxes requested, in order — Revenue leads since Profit/AOV/Avg
+  // Order Cost are all derived from it.
+  const METRICS = [
+    { key: "revenue", label: "الإيراد", money: true },
+    { key: "adSpend", label: "صرف الإعلانات", money: true },
+    { key: "orders", label: "عدد الأوردرات", money: false },
+    { key: "deliveries", label: "التسليمات", money: false },
+    { key: "cost", label: "التكلفة", money: true },
+    { key: "profit", label: "الأرباح (صافي بعد التسليم)", money: true },
+    { key: "aov", label: "متوسط قيمة الطلب", money: true },
+    { key: "orderCost", label: "تكلفة الأوردر", money: true },
+  ];
+
+  function renderDelta(current, previous) {
+    if (previous <= 0) return `<span class="kpi-delta-muted">لا تتوفر مقارنة بعد</span>`;
+    const change = ((current - previous) / previous) * 100;
+    const up = change >= 0;
+    return `<span class="${up ? "kpi-delta-up" : "kpi-delta-down"}">${up ? "▲" : "▼"} ${Math.abs(change).toFixed(1)}%</span><span class="kpi-delta-muted">مقابل الفترة السابقة</span>`;
+  }
+
+
+  function renderAdsReport(campaigns, manualExpenses, currency) {
+    if (!adsReportArea) return;
+    if (!campaigns.length && !manualExpenses.length) {
+      adsReportArea.innerHTML = emptyState("لا توجد بيانات إعلانات بعد", "أدخل مصروف الإعلانات يدويًا من Settings → Shipping & Ads أو اربط الحساب الإعلاني.");
+      return;
+    }
+    const rows = campaigns.map((c) => {
+      const spend = Number(c.spend) || 0;
+      const revenue = Number(c.revenue) || 0;
+      const impressions = Number(c.impressions) || 0;
+      const clicks = Number(c.clicks) || 0;
+      const ctr = c.ctr == null ? (impressions ? (clicks / impressions) * 100 : 0) : Number(c.ctr) || 0;
+      const cpc = c.cpc == null ? (clicks ? spend / clicks : 0) : Number(c.cpc) || 0;
+      const cpm = c.cpm == null ? (impressions ? (spend / impressions) * 1000 : 0) : Number(c.cpm) || 0;
+      const roas = c.roas == null ? (spend ? revenue / spend : 0) : Number(c.roas) || 0;
+      return `<tr><td>${escapeHtml(c.name || "—")}</td><td>${escapeHtml(c.platform || "—")}</td><td>${formatMoneyEn(spend, currency)}</td><td>${formatMoneyEn(revenue, currency)}</td><td>${impressions.toLocaleString("en-US")}</td><td>${clicks.toLocaleString("en-US")}</td><td>${ctr.toFixed(2)}%</td><td>${formatMoneyEn(cpc, currency)}</td><td>${formatMoneyEn(cpm, currency)}</td><td>${roas.toFixed(2)}x</td></tr>`;
+    }).join("");
+    const manualRows = manualExpenses.map((e) => `<tr><td>مصروف يدوي</td><td>${escapeHtml(e.platform || "—")}</td><td>${formatMoneyEn(e.amount, currency)}</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`).join("");
+    adsReportArea.innerHTML = `<div style="overflow:auto;"><table class="data-table"><thead><tr><th>الحملة</th><th>المنصة</th><th>الإنفاق</th><th>الإيراد</th><th>الظهور</th><th>النقرات</th><th>CTR</th><th>CPC</th><th>CPM</th><th>ROAS</th></tr></thead><tbody>${rows}${manualRows}</tbody></table></div>`;
+  }
+
+  function renderMetrics(m) {
+    metricsEl.innerHTML = METRICS.map(({ key, label, money }) => {
+      const value = money ? formatMoneyEn(m[key], m.currency) : String(m[key]);
+      return `<article class="card kpi-card metric-card"><span class="kpi-label">${label}</span><strong class="kpi-value">${value}</strong><div class="kpi-delta">${renderDelta(m[key], m.prev[key])}</div></article>`;
+    }).join("");
+  }
+
+  // One big chart at the bottom summarizing overall project growth: real
+  // Revenue (all valid orders) and real net Profit (delivered orders only,
+  // see load() below), plotted together across the selected period.
+  function renderGrowthChart(buckets, revenueSeries, profitSeries, currency) {
+    if (growthChart) { growthChart.destroy(); growthChart = null; }
+    const total = revenueSeries.reduce((s, v) => s + v, 0);
+    if (total === 0) {
+      growthArea.innerHTML = emptyState("لا توجد بيانات كافية لعرض النمو", "جرّب فترة زمنية أطول من الأعلى.");
+      return;
+    }
+    growthArea.innerHTML = "<canvas></canvas>";
+    const css = getComputedStyle(document.documentElement);
+    const teal = css.getPropertyValue("--color-chart-teal").trim();
+    const tealFill = css.getPropertyValue("--color-chart-teal-fill").trim();
+    const neon = css.getPropertyValue("--color-neon").trim();
+    const neonFill = css.getPropertyValue("--color-neon-10").trim();
+    const muted = css.getPropertyValue("--color-text-faint").trim();
+    const border = css.getPropertyValue("--color-border").trim();
+    const text = css.getPropertyValue("--color-text").trim();
+    growthChart = new Chart(growthArea.querySelector("canvas"), {
+      type: "line",
+      data: {
+        labels: buckets.map((b) => b.label),
+        datasets: [
+          { label: "الإيراد", data: revenueSeries, borderColor: teal, backgroundColor: tealFill, fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 },
+          { label: "صافي الربح بعد التسليم", data: profitSeries, borderColor: neon, backgroundColor: neonFill, fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: text } }, tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${formatMoneyEn(c.parsed.y, currency)}` } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { maxTicksLimit: 8, color: muted } },
+          y: { grid: { color: border }, ticks: { color: muted } },
+        },
+      },
+    });
+  }
+
+  async function load() {
+    try {
+      if (!loaded) {
+        [allOrders, allCampaigns] = await Promise.all([
+          OrdersService.list(profile.company_id),
+          CampaignsService.list(profile.company_id).catch((error) => { console.warn("Could not load campaigns:", error); return []; }),
+        ]);
+        const adResult = await supabaseClient.from("ad_expenses").select("*").eq("company_id", profile.company_id).order("expense_date", { ascending: false });
+        if (adResult.error) throw adResult.error;
+        allAdExpenses = adResult.data || [];
+        loaded = true;
+      }
+      const range = DateRange.getCurrent();
+      const buckets = DateRange.buckets(range);
+      const orders = allOrders.filter((o) => DateRange.within(o.created_at, range));
+      const prevOrders = allOrders.filter((o) => DateRange.within(o.created_at, range.previous));
+      // Revenue/AOV/Cost box figures exclude cancelled & refunded orders —
+      // same convention the Dashboard's Company Growth / Profit Trend use.
+      const validOrders = orders.filter((o) => !["cancelled", "refunded"].includes(o.status));
+      const prevValidOrders = prevOrders.filter((o) => !["cancelled", "refunded"].includes(o.status));
+      // Profit specifically uses DELIVERED orders only — "صافي الربح بعد
+      // التسليم": an order that's merely confirmed/pending hasn't actually
+      // banked real, certain revenue yet, so it shouldn't count as profit
+      // until it's actually delivered.
+      const deliveredOrders = orders.filter((o) => o.status === "delivered");
+      const prevDeliveredOrders = prevOrders.filter((o) => o.status === "delivered");
+      const campaigns = allCampaigns.filter((c) => DateRange.within(c.created_at, range));
+      const prevCampaigns = allCampaigns.filter((c) => DateRange.within(c.created_at, range.previous));
+      const prevAdExpenses = allAdExpenses.filter((e) => DateRange.within(e.expense_date, range.previous));
+      const currency = validOrders[0]?.currency || allOrders[0]?.currency || "EGP";
+
+      const sum = (list, key) => list.reduce((s, o) => s + (Number(o[key]) || 0), 0);
+      const productCostOf = (order) => {
+        const direct = Number(order.cost_total);
+        if (Number.isFinite(direct) && direct > 0) return direct;
+        const items = Array.isArray(order.order_items) ? order.order_items : [];
+        return items.reduce((s, item) => s + (Number(item.cost || 0) * Number(item.quantity || 1)), 0);
+      };
+      const productCosts = (list) => list.reduce((s, o) => s + productCostOf(o), 0);
+      const campaignSpend = (list) => list.reduce((s, c) => s + (Number(c.spend) || 0), 0);
+      const manualSpend = (list) => list.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const adsForPeriod = (campaignList, manualList) => campaignSpend(campaignList) + manualSpend(manualList);
+      // Cost box = product cost + shipping + both automatic campaign spend and manual ad spend.
+      const costOf = (validList, campaignList, manualList) => productCosts(validList) + sum(validList, "shipping_cost") + adsForPeriod(campaignList, manualList);
+      const totalCostOf = (allList, campaignList, manualList) => productCosts(allList) + sum(allList, "shipping_cost") + adsForPeriod(campaignList, manualList);
+      const netProfitOf = (deliveredList, campaignList, manualList) => sum(deliveredList, "total") - productCosts(deliveredList) - sum(deliveredList, "shipping_cost") - adsForPeriod(campaignList, manualList);
+
+      const revenue = sum(validOrders, "total"), prevRevenue = sum(prevValidOrders, "total");
+      const adSpend = adsForPeriod(campaigns, allAdExpenses), prevAdSpend = adsForPeriod(prevCampaigns, prevAdExpenses);
+      const cost = costOf(validOrders, campaigns, allAdExpenses), prevCost = costOf(prevValidOrders, prevCampaigns, prevAdExpenses);
+      const profit = netProfitOf(deliveredOrders, campaigns, allAdExpenses), prevProfit = netProfitOf(prevDeliveredOrders, prevCampaigns, prevAdExpenses);
+      // Order/delivery counts use ALL orders (not just "valid" ones) — a
+      // raw activity count, same number shown on the Orders page itself.
+      const orderCount = orders.length, prevOrderCount = prevOrders.length;
+      const deliveries = deliveredOrders.length, prevDeliveries = prevDeliveredOrders.length;
+      const aov = validOrders.length ? revenue / validOrders.length : 0;
+      const prevAov = prevValidOrders.length ? prevRevenue / prevValidOrders.length : 0;
+      // Total cost across EVERY order (including cancelled/refunded) ÷
+      // EVERY order — "the one order in front of me costs me how much,
+      // on average, across everything the project actually pays".
+      const orderCost = orderCount ? totalCostOf(orders, campaigns, allAdExpenses) / orderCount : 0;
+      const prevOrderCost = prevOrderCount ? totalCostOf(prevOrders, prevCampaigns, prevAdExpenses) / prevOrderCount : 0;
+
+      // Same figures, bucketed across the period, for the big growth chart.
+      const bucketValid = (b) => validOrders.filter((o) => DateRange.within(o.created_at, b));
+      const bucketDelivered = (b) => deliveredOrders.filter((o) => DateRange.within(o.created_at, b));
+      const bucketCampaigns = (b) => campaigns.filter((c) => DateRange.within(c.created_at, b));
+      const bucketAds = (b) => allAdExpenses.filter((e) => DateRange.within(e.expense_date, b));
+      const revenueSeries = buckets.map((b) => sum(bucketValid(b), "total"));
+      const profitSeries = buckets.map((b) => netProfitOf(bucketDelivered(b), bucketCampaigns(b), bucketAds(b)));
+
+      renderMetrics({
+        currency,
+        revenue, adSpend, orders: orderCount, deliveries, cost, profit, aov, orderCost,
+        prev: { revenue: prevRevenue, adSpend: prevAdSpend, orders: prevOrderCount, deliveries: prevDeliveries, cost: prevCost, profit: prevProfit, aov: prevAov, orderCost: prevOrderCost },
+      });
+      renderGrowthChart(buckets, revenueSeries, profitSeries, currency);
+      renderAdsReport(campaigns, allAdExpenses, currency);
+    } catch (error) {
+      console.error("Reports page failed to load:", error);
+      metricsEl.innerHTML = errorState("تعذر تحميل التقارير", isSupabaseConfigured() ? "تحقق من اتصالك بالإنترنت وحاول مرة أخرى." : "لسه معملتش ربط مشروع Supabase — راجع assets/lib/supabase-client.js.");
+    }
+  }
+
+  metricsEl.innerHTML = skeletonBlock("90px", 8);
+  await load();
+  window.addEventListener("boteradaterangechange", load);
+  let realtimeTimer = null;
+  window.addEventListener("boterarealtimechange", () => {
+    clearTimeout(realtimeTimer);
+    realtimeTimer = setTimeout(() => { loaded = false; load(); }, 180);
+  });
+})();

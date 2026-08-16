@@ -1,0 +1,64 @@
+:root {
+  /* Colors — base */
+  --color-bg: #0a0a0c;
+  --color-surface: #121214;
+  --color-surface-2: #17181b;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Colors — text */
+  --color-text: #f2f2f3;
+  --color-text-muted: #9a9aa2;
+  --color-text-faint: rgba(255, 255, 255, 0.45);
+
+  /* Colors — accent (brand) */
+  --color-neon: #39ff6a;
+  --color-neon-10: rgba(57, 255, 106, 0.10);
+  --color-neon-20: rgba(57, 255, 106, 0.20);
+
+  /* Colors — status */
+  --color-amber: #fbbf24;
+  --color-sky: #38bdf8;
+  --color-violet: #a78bfa;
+  --color-red: #f87171;
+
+  /* Status backgrounds (10% opacity versions) */
+  --color-amber-10: rgba(251, 191, 36, 0.10);
+  --color-sky-10: rgba(56, 189, 248, 0.10);
+  --color-violet-10: rgba(167, 139, 250, 0.10);
+  --color-red-10: rgba(248, 113, 113, 0.10);
+
+  /* Colors — charts */
+  --color-chart-teal: #2dd4bf;
+  --color-chart-teal-fill: rgba(45, 212, 191, 0.16);
+  --color-chart-blue: #60a5fa;
+
+  /* Spacing scale (multiples of 4px) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 12.5px;
+  --font-size-base: 14px;
+  --font-size-lg: 18px;
+  --font-size-xl: 28px;
+  --font-size-2xl: 38px;
+
+  /* Shadows */
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
+}
