@@ -9,37 +9,53 @@ body[data-page="insights"] .page-main {
   min-height: calc(100vh - 72px);
 }
 
-/* Keep the two headline rows equal in size. */
+/* First 4 KPI cards: same equal half-width sizing as Deliveries/Returns. */
 #reportsMetrics .insights-kpi-hero,
+#reportsMetrics .insights-kpi-secondary {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: var(--space-4) !important;
+  width: 100%;
+  margin-bottom: var(--space-4);
+}
+
+#reportsMetrics .insights-kpi-hero .metric-card,
+#reportsMetrics .insights-kpi-secondary .metric-card {
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 108px !important;
+  grid-column: auto !important;
+}
+
+/* Remaining KPI cards keep their existing 4-column compact layout. */
 #reportsMetrics .insights-kpi-rest {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: var(--space-3) !important;
   width: 100%;
 }
 
-#reportsMetrics .insights-kpi-rest {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-#reportsMetrics .insights-kpi-rest .metric-card:nth-child(1),
-#reportsMetrics .insights-kpi-rest .metric-card:nth-child(2) {
-  grid-column: span 2;
+#reportsMetrics .insights-kpi-rest .metric-card {
+  min-width: 0 !important;
+  width: auto !important;
+  grid-column: auto !important;
 }
 
 @media (max-width: 900px) {
-  #reportsMetrics .insights-kpi-rest {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  #reportsMetrics .insights-kpi-hero,
+  #reportsMetrics .insights-kpi-secondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
-  #reportsMetrics .insights-kpi-rest .metric-card:nth-child(1),
-  #reportsMetrics .insights-kpi-rest .metric-card:nth-child(2) {
-    grid-column: span 1;
+
+  #reportsMetrics .insights-kpi-rest {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 
 @media (max-width: 640px) {
+  #reportsMetrics .insights-kpi-hero,
+  #reportsMetrics .insights-kpi-secondary,
   #reportsMetrics .insights-kpi-rest {
-    grid-template-columns: 1fr;
-  }
-  #reportsMetrics .insights-kpi-rest .metric-card:nth-child(1),
-  #reportsMetrics .insights-kpi-rest .metric-card:nth-child(2) {
-    grid-column: span 1;
+    grid-template-columns: 1fr !important;
   }
 }
