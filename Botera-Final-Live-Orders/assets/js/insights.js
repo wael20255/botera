@@ -122,15 +122,22 @@
       const currency = orders[0]?.currency || allOrders[0]?.currency || "EGP";
 
       const sum = (list, key) => list.reduce((s, item) => s + (Number(item[key]) || 0), 0);
+      const productCostOf = (order) => {
+        const direct = Number(order?.cost_total);
+        if (Number.isFinite(direct) && direct > 0) return direct;
+        const items = Array.isArray(order?.order_items) ? order.order_items : [];
+        return items.reduce((s, item) => s + (Number(item?.cost || 0) * Number(item?.quantity || 1)), 0);
+      };
+      const productCosts = (list) => list.reduce((s, o) => s + productCostOf(o), 0);
       const campaignSpend = (list) => list.reduce((s, c) => s + (Number(c.spend) || 0), 0);
       const manualSpend = (list) => list.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       const adsForPeriod = (campaignList, manualList) => campaignSpend(campaignList) + manualSpend(manualList);
 
-      // Exact requested business formulas:
+      // Requested business formulas:
       // 1) Cost per order before shipping = ad spend / total orders.
       // 2) Cost per order after shipping = ad spend / delivered orders.
       // 3) Revenue = delivered order totals only.
-      // 4) Net profit = delivered revenue - (after-shipping cost per delivery * deliveries).
+      // 4) Net profit = delivered revenue - total delivery advertising cost - product cost of delivered orders.
       const calculatePeriod = (orderList, campaignList, manualList) => {
         const delivered = orderList.filter((o) => o.status === "delivered");
         const adSpend = adsForPeriod(campaignList, manualList);
@@ -139,8 +146,9 @@
         const beforeShippingPerOrder = orderCount ? adSpend / orderCount : 0;
         const afterShippingPerDelivery = deliveryCount ? adSpend / deliveryCount : 0;
         const revenue = sum(delivered, "total");
-        const totalDeliveryCost = afterShippingPerDelivery * deliveryCount;
-        const profit = revenue - totalDeliveryCost;
+        const totalDeliveryAdvertisingCost = afterShippingPerDelivery * deliveryCount;
+        const deliveredProductCost = productCosts(delivered);
+        const profit = revenue - totalDeliveryAdvertisingCost - deliveredProductCost;
         const aov = deliveryCount ? revenue / deliveryCount : 0;
 
         return {
