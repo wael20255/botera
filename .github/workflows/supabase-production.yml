@@ -34,13 +34,45 @@ jobs:
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_ID" ]; then
             echo "Supabase deployment secrets are not configured yet. Skipping production deploy."
-            exit 0
+            exit 1
           fi
 
+      - name: Repair legacy remote-only migration history
+        shell: bash
+        run: |
+          set +e
+          for version in \
+            20260811033739 \
+            20260811033821 \
+            20260814044221 \
+            20260814045045 \
+            20260814072229 \
+            20260814082303 \
+            20260814082748 \
+            20260815092622 \
+            20260815101040 \
+            20260815101531 \
+            20260815114127 \
+            20260815115349 \
+            20260815120153 \
+            20260815120227 \
+            20260815123046 \
+            20260816065745 \
+            20260816124139 \
+            20260816130316 \
+            20260816130531 \
+            20260816131508 \
+            20260816132309 \
+            20260816132434 \
+            20260816142322 \
+            20260816145743 \
+            20260816160456
+          do
+            supabase migration repair "$version" --status reverted --project-ref "$SUPABASE_PROJECT_ID" || true
+          done
+
       - name: Deploy database migrations
-        if: env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_PROJECT_ID != ''
         run: supabase db push --project-ref "$SUPABASE_PROJECT_ID"
 
       - name: Deploy Edge Functions
-        if: env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_PROJECT_ID != ''
         run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_ID"
