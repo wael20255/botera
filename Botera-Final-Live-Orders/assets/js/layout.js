@@ -37,13 +37,25 @@ function setupLayout(profile) {
     window.location.href = "login.html";
   });
 
-  // Load the additive live fixes once on every authenticated page. It is
-  // deliberately loaded after the page script has created its DOM so it can
-  // enhance existing modals/forms without replacing the existing UI.
+  // Load additive live fixes once on every authenticated page.
   if (!document.querySelector('script[data-botera-live-fixes]')) {
     const script = document.createElement("script");
     script.src = "assets/js/live-fixes.js";
     script.dataset.boteraLiveFixes = "1";
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+  if (!document.querySelector('script[data-botera-order-detail-fix]')) {
+    const script = document.createElement("script");
+    script.src = "assets/js/order-detail-fix.js";
+    script.dataset.boteraOrderDetailFix = "1";
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+  if (!document.querySelector('script[data-botera-report-cost-fix]')) {
+    const script = document.createElement("script");
+    script.src = "assets/js/report-cost-fix.js";
+    script.dataset.boteraReportCostFix = "1";
     script.defer = true;
     document.head.appendChild(script);
   }
