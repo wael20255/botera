@@ -15,7 +15,6 @@ permissions:
 
 env:
   PRODUCTION_URL: https://botera.botera.workers.dev
-  WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-output.ndjson
 
 jobs:
   deploy:
@@ -33,20 +32,22 @@ jobs:
           wranglerVersion: "4.123.0"
           command: deploy
 
-      - name: Promote uploaded version to production
+      - name: Promote latest uploaded version to production
         shell: bash
         run: |
           set -euo pipefail
-          test -s "$WRANGLER_OUTPUT_FILE_PATH"
-          VERSION_ID="$(node -e '
+          VERSIONS_JSON="$(npx wrangler versions list --name botera --json)"
+          VERSION_ID="$(printf '%s' "$VERSIONS_JSON" | node -e '
             const fs=require("fs");
-            const lines=fs.readFileSync(process.env.WRANGLER_OUTPUT_FILE_PATH,"utf8").trim().split(/\r?\n/).filter(Boolean);
-            const records=lines.map(line=>{try{return JSON.parse(line)}catch{return null}}).filter(Boolean);
-            const deploy=records.reverse().find(r=>r.type==="deploy" && r.version_id);
-            if(!deploy) process.exit(2);
-            process.stdout.write(deploy.version_id);
+            const raw=fs.readFileSync(0,"utf8");
+            const data=JSON.parse(raw);
+            const items=Array.isArray(data) ? data : (data.result?.items || data.items || []);
+            if(!items.length) process.exit(2);
+            items.sort((a,b)=>new Date(b.metadata?.created_on || b.created_on || 0)-new Date(a.metadata?.created_on || a.created_on || 0));
+            process.stdout.write(items[0].id || "");
           ')"
-          echo "Uploaded version: ${VERSION_ID}"
+          test -n "$VERSION_ID"
+          echo "Promoting uploaded version: ${VERSION_ID}"
           npx wrangler versions deploy "${VERSION_ID}" -y
           npx wrangler deployments list --name botera --json
 
