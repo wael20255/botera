@@ -92,24 +92,29 @@
     const os=orders.filter(o=>inRange(o.created_at,r));
     const nonCancelled=os.filter(o=>o.status!=="cancelled");
     const returned=nonCancelled.filter(o=>o.status==="refunded");
-    const sold=nonCancelled.filter(o=>o.status!=="refunded");
+    const delivered=nonCancelled.filter(o=>o.status==="delivered");
     const cs=campaigns.filter(c=>inRange(c.created_at,r));
     const ae=ads.filter(e=>inRange(e.expense_date,r));
 
     const adSpend=sum(cs,"spend")+sum(ae,"amount");
-    const product=sold.reduce((s,o)=>s+productCost(o),0);
-    const outbound=sum(sold,"shipping_cost");
     const defaultReturnCost=Number(shippingSettings?.return_shipping_cost)||0;
     const returns=returned.reduce((s,o)=>{
       const stored=Number(o?.return_shipping_cost);
       return s+(Number.isFinite(stored)&&stored>0?stored:defaultReturnCost);
     },0);
 
-    const afterShipping=product+outbound+returns+adSpend;
-    const beforeShipping=os.length?adSpend/os.length:0;
-    const delivered=sold.filter(o=>o.status==="delivered");
+    // تكلفة الأوردر بعد الشحن =
+    // المتسلم: تكلفة البضاعة + تكلفة الشحن
+    // المرتجع: تكلفة المرتجع فقط
+    // + صرف الإعلانات (أي تكلفة الإعلان موزعة على كل الأوردرات)
+    const deliveredProductCost=delivered.reduce((s,o)=>s+productCost(o),0);
+    const deliveredShipping=sum(delivered,"shipping_cost");
+    const afterShipping=deliveredProductCost+deliveredShipping+returns+adSpend;
+
+    // تكلفة الإعلان لكل أوردر = إجمالي صرف الإعلانات ÷ عدد الأوردرات
+    const beforeShipping=nonCancelled.length?adSpend/nonCancelled.length:0;
     const deliveredRevenue=sum(delivered,"total");
-    const deliveredCost=delivered.reduce((s,o)=>s+productCost(o),0)+sum(delivered,"shipping_cost");
+    const deliveredCost=deliveredProductCost+deliveredShipping;
     const profit=deliveredRevenue-deliveredCost-returns-adSpend;
     const currency=delivered[0]?.currency||orders[0]?.currency||p.company?.currency||"EGP";
 
