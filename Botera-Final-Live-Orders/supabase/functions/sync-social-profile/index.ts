@@ -23,12 +23,18 @@ Deno.serve(async (req) => {
     if (!["facebook", "instagram"].includes(customer.source)) return json({ ok: false, error: "unsupported_channel" }, 400);
     const { data: integration } = await db.from("integration_accounts").select("access_token,external_account_id,is_active").eq("company_id", profile.company_id).eq("provider", "meta").eq("channel", customer.source).eq("is_active", true).maybeSingle();
     if (!integration?.access_token) return json({ ok: false, error: "missing_social_token" }, 400);
-    const graphUrl = `https://graph.facebook.com/${encodeURIComponent(customer.external_id)}?fields=name&access_token=${encodeURIComponent(integration.access_token)}`;
+
+    const fields = customer.source === "facebook" ? "name,first_name,last_name" : "name,username";
+    const graphUrl = `https://graph.facebook.com/${encodeURIComponent(customer.external_id)}?fields=${fields}&access_token=${encodeURIComponent(integration.access_token)}`;
     const response = await fetch(graphUrl);
     const graph = await response.json().catch(() => ({}));
-    if (!response.ok || !graph?.name) return json({ ok: false, error: "profile_lookup_failed", details: graph?.error?.message || `HTTP ${response.status}` }, 400);
-    const { error: updateError } = await db.from("customers").update({ name: graph.name, updated_at: new Date().toISOString() }).eq("id", customer.id).eq("company_id", profile.company_id);
+    if (!response.ok) return json({ ok: false, error: "profile_lookup_failed", details: graph?.error?.message || `HTTP ${response.status}` }, 400);
+
+    const resolvedName = String(graph?.name || [graph?.first_name, graph?.last_name].filter(Boolean).join(" ") || graph?.username || "").trim();
+    if (!resolvedName) return json({ ok: false, error: "profile_name_unavailable" }, 400);
+
+    const { error: updateError } = await db.from("customers").update({ name: resolvedName, updated_at: new Date().toISOString() }).eq("id", customer.id).eq("company_id", profile.company_id);
     if (updateError) return json({ ok: false, error: "customer_update_failed", details: updateError.message }, 500);
-    return json({ ok: true, name: graph.name });
+    return json({ ok: true, name: resolvedName });
   } catch (e) { return json({ ok: false, error: e instanceof Error ? e.message : String(e) }, 500); }
 });
