@@ -74,29 +74,37 @@
     const cs=campaigns.filter(c=>inRange(c.created_at,r));
     const ae=ads.filter(e=>inRange(e.expense_date,r));
 
-    // Advertising cost is allocated equally across all non-cancelled orders in the selected period.
+    // 1) Advertising cost per order = total ad spend / all non-cancelled orders in the selected period.
     const adSpend=sum(cs,"spend")+sum(ae,"amount");
     const adPerOrder=nonCancelled.length?adSpend/nonCancelled.length:0;
 
-    // Returned order: return cost + advertising allocation only.
-    const defaultReturnCost=Number(shippingSettings?.return_shipping_cost)||0;
-    const returnedCosts=returned.reduce((s,o)=>{
-      const stored=Number(o?.return_shipping_cost);
-      return s+(Number.isFinite(stored)&&stored>0?stored:defaultReturnCost);
-    },0);
-
-    // Delivered order: product cost + delivery shipping + advertising allocation.
+    // 2) Delivered order cost = product cost only + delivery shipping + one ad allocation for each delivered order.
+    //    Product cost is strictly the product's cost field, never its selling price / order total.
     const deliveredProductCost=delivered.reduce((s,o)=>s+productCost(o),0);
     const deliveredShipping=sum(delivered,"shipping_cost");
-    const deliveredOrderCostTotal=deliveredProductCost+deliveredShipping+(adPerOrder*delivered.length);
-    const returnedOrderCostTotal=returnedCosts+(adPerOrder*returned.length);
-    const afterShippingTotal=deliveredOrderCostTotal+returnedOrderCostTotal;
-    const afterShipping=nonCancelled.length?afterShippingTotal/nonCancelled.length:0;
+    const deliveredAdvertising=adPerOrder*delivered.length;
+    const deliveredCostTotal=deliveredProductCost+deliveredShipping+deliveredAdvertising;
 
-    // Net profit = delivered revenue minus every real cost in the selected period.
-    // Costs: delivered product + delivered shipping + return costs + total advertising spend.
+    // 3) Returned order cost = return shipping cost + one ad allocation for each returned order.
+    //    No product cost and no delivery shipping are charged to returned orders.
+    const defaultReturnCost=Number(shippingSettings?.return_shipping_cost)||0;
+    const returnedCostTotal=returned.reduce((s,o)=>{
+      const stored=Number(o?.return_shipping_cost);
+      const returnCost=(Number.isFinite(stored)&&stored>0)?stored:defaultReturnCost;
+      return s+returnCost;
+    },0);
+    const returnedAdvertising=adPerOrder*returned.length;
+    const returnedOrderCosts=returnedCostTotal+returnedAdvertising;
+
+    // 4) "Cost per order after shipping" is the average real cost per non-cancelled order.
+    //    Every order contributes exactly according to its own status using the two rules above.
+    const afterShippingTotal=deliveredCostTotal+returnedOrderCosts;
+    const afterShippingPerOrder=nonCancelled.length?afterShippingTotal/nonCancelled.length:0;
+
+    // 5) Net profit = delivered revenue minus ALL actual costs for the selected period.
+    //    Returned orders contribute only return cost + ad allocation; no product cost is deducted for them.
     const deliveredRevenue=sum(delivered,"total");
-    const profit=deliveredRevenue-deliveredProductCost-deliveredShipping-returnedCosts-adSpend;
+    const profit=deliveredRevenue-deliveredProductCost-deliveredShipping-returnedCostTotal-adSpend;
     const currency=delivered[0]?.currency||orders[0]?.currency||p.company?.currency||"EGP";
 
     root.querySelectorAll(".metric-card").forEach(card=>{
@@ -105,7 +113,7 @@
       if(!value)return;
       if(label==="التكلفة"||label==="تكلفة الأوردر بعد الشحن"||label==="تكلفة الاوردر بعد الشحن"){
         card.querySelector(".kpi-label").textContent="تكلفة الأوردر بعد الشحن";
-        value.textContent=money(afterShipping,currency);
+        value.textContent=money(afterShippingPerOrder,currency);
       }
       if(label==="تكلفة الأوردر"||label==="تكلفة الأوردر قبل الشحن"||label==="تكلفة الاوردر قبل الشحن"){
         card.querySelector(".kpi-label").textContent="تكلفة الأوردر قبل الشحن";
@@ -124,7 +132,6 @@
   window.addEventListener("boterarealtimechange",()=>setTimeout(run,200));
   if(window.AuthStore?.subscribe)window.AuthStore.subscribe(()=>setTimeout(run,100));
 
-  // Retry briefly while authentication and KPI cards finish rendering.
   let attempts=0;
   const retry=setInterval(()=>{
     attempts++;
