@@ -1,4 +1,5 @@
-// Presentation-only override for Insights KPI cards.
+// Insights KPI presentation only.
+// Required order: ads + orders, then revenue + net profit, then all remaining cards.
 (function () {
   const rootSelector = "#reportsMetrics";
   const labels = {
@@ -17,7 +18,7 @@
 
   function reorder() {
     const root = document.querySelector(rootSelector);
-    if (!root) return;
+    if (!root) return false;
 
     const aov = cardByLabel(labels.aov);
     if (aov) aov.remove();
@@ -26,15 +27,14 @@
     const orders = cardByLabel(labels.orders);
     const revenue = cardByLabel(labels.revenue);
     const profit = cardByLabel(labels.profit);
-
-    if (!ad || !orders || !revenue || !profit) return;
+    if (!ad || !orders || !revenue || !profit) return false;
 
     const remaining = [...root.querySelectorAll(".metric-card")].filter(
       (card) => ![ad, orders, revenue, profit].includes(card)
     );
 
     const top = document.createElement("div");
-    top.className = "insights-kpi-hero";
+    top.className = "insights-kpi-hero insights-kpi-primary";
     top.append(ad, orders);
 
     const second = document.createElement("div");
@@ -46,6 +46,7 @@
     remaining.forEach((card) => rest.appendChild(card));
 
     root.replaceChildren(top, second, rest);
+    return true;
   }
 
   function observe() {
