@@ -50,6 +50,31 @@
     if(profit)profit.classList.add("featured");
   }
 
+  function syncChart(orders, campaigns, adExpenses, range, currency){
+    const canvas=document.querySelector("#growthChartArea canvas");
+    if(!canvas || !window.Chart?.getChart || !window.DateRange) return;
+    const chart=Chart.getChart(canvas);
+    if(!chart) return;
+    const buckets=DateRange.buckets(range);
+    const adSpendForBucket=(b)=>
+      campaigns.filter(c=>inRange(c.created_at,b)).reduce((s,c)=>s+(Number(c.spend)||0),0)+
+      adExpenses.filter(e=>inRange(e.expense_date,b)).reduce((s,e)=>s+(Number(e.amount)||0),0);
+    const revenueSeries=[];
+    const profitSeries=[];
+    for(const b of buckets){
+      const bo=orders.filter(o=>inRange(o.created_at,b));
+      const delivered=bo.filter(o=>o.status==="delivered");
+      const revenue=sum(delivered,"total");
+      const adSpend=adSpendForBucket(b);
+      const afterShipping=delivered.length?adSpend/delivered.length:0;
+      revenueSeries.push(revenue);
+      profitSeries.push(revenue-(afterShipping*delivered.length));
+    }
+    if(chart.data?.datasets?.[0]) chart.data.datasets[0].data=revenueSeries;
+    if(chart.data?.datasets?.[1]) chart.data.datasets[1].data=profitSeries;
+    chart.update("none");
+  }
+
   async function fix(){
     const p=window.__boteraLiveProfile||window.AuthStore?.get?.().profile;
     if(!p||!window.supabaseClient||!window.DateRange)return;
@@ -69,11 +94,11 @@
     const cs=campaigns.filter(c=>inRange(c.created_at,r));
     const ae=ads.filter(e=>inRange(e.expense_date,r));
 
-    // EXACT requested formulas:
-    // 1) Before-shipping order cost = total ad spend / total non-cancelled orders.
-    // 2) After-shipping order cost = total ad spend / delivered orders.
-    // 3) Revenue = delivered order revenue only.
-    // 4) Net profit = delivered revenue - (after-shipping cost per delivered order * delivered count).
+    // Exact requested formulas:
+    // Before-shipping order cost = ad spend / all non-cancelled orders.
+    // After-shipping order cost = ad spend / delivered orders.
+    // Revenue = delivered orders total only.
+    // Net profit = delivered revenue - (after-shipping order cost * deliveries).
     const adSpend=sum(cs,"spend")+sum(ae,"amount");
     const beforeShippingPerOrder=allOrdersForAds.length?adSpend/allOrdersForAds.length:0;
     const afterShippingPerOrder=delivered.length?adSpend/delivered.length:0;
@@ -102,6 +127,7 @@
       if(label==="التسليمات")value.textContent=String(delivered.length);
     });
 
+    syncChart(os,cs,ae,r,currency);
     installReportStyle();
     arrangeMetrics();
   }
