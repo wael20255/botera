@@ -22,10 +22,10 @@
     { key: "adSpend", label: "صرف الإعلانات", money: true },
     { key: "orders", label: "عدد الأوردرات", money: false },
     { key: "deliveries", label: "التسليمات", money: false },
-    { key: "cost", label: "التكلفة", money: true },
+    { key: "cost", label: "تكلفة الأوردر بعد الشحن", money: true },
     { key: "profit", label: "الأرباح (صافي بعد التسليم)", money: true },
     { key: "aov", label: "متوسط قيمة الطلب", money: true },
-    { key: "orderCost", label: "تكلفة الأوردر", money: true },
+    { key: "orderCost", label: "تكلفة الأوردر قبل الشحن", money: true },
   ];
 
   function renderDelta(current, previous) {
@@ -138,10 +138,8 @@
       const manualSpend = (list) => list.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       const adsForPeriod = (campaignList, manualList) => campaignSpend(campaignList) + manualSpend(manualList);
 
-      // Base order cost = product cost + outbound shipping.
+      // Keep the existing total cost calculation exactly as before.
       const baseOrderCost = (orderList) => productCosts(orderList) + sum(orderList, "shipping_cost");
-      // Total cost keeps the existing per-order calculation and adds the
-      // advertising spend for the selected period on top.
       const totalCostOf = (orderList, adSpendForPeriod) => baseOrderCost(orderList) + adSpendForPeriod;
       const netProfitOf = (deliveredList, campaignList, manualList) => sum(deliveredList, "total") - productCosts(deliveredList) - sum(deliveredList, "shipping_cost") - adsForPeriod(campaignList, manualList);
 
@@ -156,10 +154,9 @@
       const aov = validOrders.length ? revenue / validOrders.length : 0;
       const prevAov = prevValidOrders.length ? prevRevenue / prevValidOrders.length : 0;
 
-      // Cost per order = product cost + shipping cost, then add the selected
-      // period's advertising spend distributed across the selected orders.
-      const orderCost = orderCount ? totalCostOf(orders, adSpend) / orderCount : 0;
-      const prevOrderCost = prevOrderCount ? totalCostOf(prevOrders, prevAdSpend) / prevOrderCount : 0;
+      // Before shipping = advertising spend divided by the total order count.
+      const orderCost = orderCount ? adSpend / orderCount : 0;
+      const prevOrderCost = prevOrderCount ? prevAdSpend / prevOrderCount : 0;
 
       const bucketValid = (b) => validOrders.filter((o) => DateRange.within(o.created_at, b));
       const bucketDelivered = (b) => deliveredOrders.filter((o) => DateRange.within(o.created_at, b));
