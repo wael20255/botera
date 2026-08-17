@@ -16,7 +16,7 @@
     const [ordersResult, productsResult, shippingResult, campaignsResult, adsResult] = await Promise.all([
       supabaseClient
         .from("orders")
-        .select("id,created_at,status,total,currency,order_items(product_id,product_name,quantity)")
+        .select("id,created_at,status,shipping_status,total,currency,order_items(product_id,product_name,quantity)")
         .eq("company_id", profile.company_id),
       supabaseClient
         .from("products")
