@@ -6,9 +6,6 @@
     ? formatMoney(Number(v||0),c)
     : new Intl.NumberFormat("en-US",{maximumFractionDigits:2}).format(Number(v||0))+" "+c;
   const sum=(a,k)=>a.reduce((s,x)=>s+(Number(x?.[k])||0),0);
-  const productCost=o=>(Array.isArray(o?.order_items)?o.order_items:[]).reduce(
-    (s,i)=>s+(Number(i?.cost)||0)*(Number(i?.quantity)||1),0
-  );
   const inRange=(d,r)=>window.DateRange?.within?window.DateRange.within(d,r):true;
 
   function installReportStyle(){
@@ -60,49 +57,31 @@
     if(!root)return;
 
     const r=DateRange.getCurrent();
-    const [orders,campaigns,ads,shippingSettings]=await Promise.all([
+    const [orders,campaigns,ads]=await Promise.all([
       OrdersService.list(p.company_id),
       CampaignsService.list(p.company_id).catch(()=>[]),
-      supabaseClient.from("ad_expenses").select("*").eq("company_id",p.company_id).then(x=>x.data||[]),
-      supabaseClient.from("shipping_settings").select("return_shipping_cost").eq("company_id",p.company_id).maybeSingle().then(x=>x.data||{})
+      supabaseClient.from("ad_expenses").select("*").eq("company_id",p.company_id).then(x=>x.data||[])
     ]);
 
     const os=orders.filter(o=>inRange(o.created_at,r));
-    const nonCancelled=os.filter(o=>o.status!=="cancelled");
-    const returned=nonCancelled.filter(o=>o.status==="refunded");
-    const delivered=nonCancelled.filter(o=>o.status==="delivered");
+    const allOrdersForAds=os.filter(o=>o.status!=="cancelled");
+    const delivered=os.filter(o=>o.status==="delivered");
     const cs=campaigns.filter(c=>inRange(c.created_at,r));
     const ae=ads.filter(e=>inRange(e.expense_date,r));
 
-    // Advertising allocation is calculated once per non-cancelled order.
+    // EXACT requested formulas:
+    // 1) Before-shipping order cost = total ad spend / total non-cancelled orders.
+    // 2) After-shipping order cost = total ad spend / delivered orders.
+    // 3) Revenue = delivered order revenue only.
+    // 4) Net profit = delivered revenue - (after-shipping cost per delivered order * delivered count).
     const adSpend=sum(cs,"spend")+sum(ae,"amount");
-    const adPerOrder=nonCancelled.length?adSpend/nonCancelled.length:0;
-
-    // Delivered order = product + delivery shipping + advertising allocation.
-    const deliveredProductCost=delivered.reduce((s,o)=>s+productCost(o),0);
-    const deliveredShipping=sum(delivered,"shipping_cost");
-    const deliveredAdvertising=adPerOrder*delivered.length;
-    const deliveredCostTotal=deliveredProductCost+deliveredShipping+deliveredAdvertising;
-
-    // Returned order = return shipping cost ONLY. No product cost, delivery shipping,
-    // or advertising allocation is charged to a returned order.
-    const defaultReturnCost=Number(shippingSettings?.return_shipping_cost)||0;
-    const returnedCostTotal=returned.reduce((s,o)=>{
-      const stored=Number(o?.return_shipping_cost);
-      const returnCost=(Number.isFinite(stored)&&stored>0)?stored:defaultReturnCost;
-      return s+returnCost;
-    },0);
-
-    // Average real cost per non-cancelled order.
-    const afterShippingTotal=deliveredCostTotal+returnedCostTotal;
-    const afterShippingPerOrder=nonCancelled.length?afterShippingTotal/nonCancelled.length:0;
-
-    // Delivered revenue only.
+    const beforeShippingPerOrder=allOrdersForAds.length?adSpend/allOrdersForAds.length:0;
+    const afterShippingPerOrder=delivered.length?adSpend/delivered.length:0;
     const deliveredRevenue=sum(delivered,"total");
-
-    // Net profit = delivered revenue - delivered order costs - return costs.
-    const profit=deliveredRevenue-deliveredProductCost-deliveredShipping-deliveredAdvertising-returnedCostTotal;
-    const currency=delivered[0]?.currency||orders[0]?.currency||p.company?.currency||"EGP";
+    const totalDeliveredCost=afterShippingPerOrder*delivered.length;
+    const profit=deliveredRevenue-totalDeliveredCost;
+    const deliveredAov=delivered.length?deliveredRevenue/delivered.length:0;
+    const currency=delivered[0]?.currency||os[0]?.currency||p.company?.currency||"EGP";
 
     root.querySelectorAll(".metric-card").forEach(card=>{
       const label=card.querySelector(".kpi-label")?.textContent?.trim();
@@ -114,11 +93,12 @@
       }
       if(label==="تكلفة الأوردر"||label==="تكلفة الأوردر قبل الشحن"||label==="تكلفة الاوردر قبل الشحن"){
         card.querySelector(".kpi-label").textContent="تكلفة الأوردر قبل الشحن";
-        value.textContent=money(adPerOrder,currency);
+        value.textContent=money(beforeShippingPerOrder,currency);
       }
       if(label==="الأرباح (صافي بعد التسليم)")value.textContent=money(profit,currency);
       if(label==="الإيراد")value.textContent=money(deliveredRevenue,currency);
-      if(label==="متوسط قيمة الطلب")value.textContent=money(delivered.length?deliveredRevenue/delivered.length:0,currency);
+      if(label==="متوسط قيمة الطلب")value.textContent=money(deliveredAov,currency);
+      if(label==="عدد الأوردرات")value.textContent=String(os.length);
       if(label==="التسليمات")value.textContent=String(delivered.length);
     });
 
@@ -126,7 +106,7 @@
     arrangeMetrics();
   }
 
-  const run=()=>fix().catch(e=>console.error("Reports return-cost fix failed:",e));
+  const run=()=>fix().catch(e=>console.error("Reports exact-cost fix failed:",e));
   window.addEventListener("load",()=>setTimeout(run,300));
   window.addEventListener("boteradaterangechange",()=>setTimeout(run,100));
   window.addEventListener("boterarealtimechange",()=>setTimeout(run,200));
