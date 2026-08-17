@@ -1,0 +1,45 @@
+/* Insights final visual fix: preserve shared Botera theme and requested KPI arrangement. */
+body[data-page="insights"],
+body[data-page="insights"] .page-main {
+  background: var(--color-bg) !important;
+  color: var(--color-text) !important;
+}
+
+body[data-page="insights"] .page-main {
+  min-height: calc(100vh - 72px);
+}
+
+/* Keep the two headline rows equal in size. */
+#reportsMetrics .insights-kpi-hero,
+#reportsMetrics .insights-kpi-rest {
+  width: 100%;
+}
+
+#reportsMetrics .insights-kpi-rest {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+#reportsMetrics .insights-kpi-rest .metric-card:nth-child(1),
+#reportsMetrics .insights-kpi-rest .metric-card:nth-child(2) {
+  grid-column: span 2;
+}
+
+@media (max-width: 900px) {
+  #reportsMetrics .insights-kpi-rest {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #reportsMetrics .insights-kpi-rest .metric-card:nth-child(1),
+  #reportsMetrics .insights-kpi-rest .metric-card:nth-child(2) {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 640px) {
+  #reportsMetrics .insights-kpi-rest {
+    grid-template-columns: 1fr;
+  }
+  #reportsMetrics .insights-kpi-rest .metric-card:nth-child(1),
+  #reportsMetrics .insights-kpi-rest .metric-card:nth-child(2) {
+    grid-column: span 1;
+  }
+}
