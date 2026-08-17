@@ -9,7 +9,7 @@
       const existing = document.querySelector(`script[data-orders-editor-src="${src}"]`);
       if(existing){ resolve(); return; }
       const script = document.createElement("script");
-      script.src = `${src}?v=20260817-authfix`;
+      script.src = `${src}?v=20260817-authfix2`;
       script.dataset.ordersEditorSrc = src;
       script.onload = resolve;
       script.onerror = () => reject(new Error(`Failed to load ${src}`));
@@ -17,16 +17,36 @@
     });
   }
 
+  async function getProfile(){
+    try {
+      const stored = AuthStore?.get?.()?.profile || null;
+      if (stored) return stored;
+    } catch {
+      // Continue to the authenticated lookup below.
+    }
+
+    try {
+      if (typeof useAuth !== "undefined" && typeof useAuth.ensureAuthenticated === "function") {
+        return await useAuth.ensureAuthenticated({ requiredPermission: "can_view_orders" });
+      }
+    } catch (error) {
+      console.error("Botera Orders auth bootstrap failed:", error);
+    }
+
+    return null;
+  }
+
   async function boot(){
     if(loaded || booting) return;
     booting = true;
     try {
-      const profile = window.AuthStore?.get?.()?.profile || await window.useAuth?.ensureAuthenticated?.({ requiredPermission: "can_view_orders" });
+      const profile = await getProfile();
       if(!profile){
         booting = false;
         setTimeout(boot,250);
         return;
       }
+
       window.__boteraLiveProfile = profile;
       await loadScript(editorSrc);
       await loadScript(safetySrc);
