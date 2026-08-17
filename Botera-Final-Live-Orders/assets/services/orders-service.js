@@ -25,10 +25,12 @@ const OrdersService = (function () {
   }
 
   async function saveEditor(payload) {
+    const customerOrderName = String(payload.order?.customer_order_name || "").trim();
     const orderData = {
       ...payload.order,
+      // The customer name must match the name used on the order.
+      name: customerOrderName || payload.customer?.name || "",
       customer_id: payload.customerId || "",
-      name: payload.customer?.name || "",
       phone: payload.customer?.phone || "",
       email: payload.customer?.email || "",
       country: payload.customer?.country || "",
