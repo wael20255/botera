@@ -40,6 +40,13 @@ jobs:
       - name: Link Supabase project
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
 
+      - name: Reconcile remote-only migration history
+        run: |
+          # These versions exist in the production migration history but are
+          # intentionally no longer represented by local migration files.
+          # Supabase CLI reports them as the exact blocking versions for db push.
+          supabase migration repair --status reverted 20260817023812 20260817024128
+
       - name: Deploy database migrations
         run: supabase db push --include-all --yes
 
