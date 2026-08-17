@@ -103,22 +103,20 @@
       return s+(Number.isFinite(stored)&&stored>0?stored:defaultReturnCost);
     },0);
 
-    // تكلفة الأوردر بعد الشحن = إجمالي التكاليف الفعلية للأوردرات:
-    // المتسلم = تكلفة البضاعة فقط + تكلفة الشحن.
-    // المرتجع = تكلفة المرتجع فقط، ولا تُحسب تكلفة البضاعة للمرتجع.
-    // صرف الإعلانات يُضاف كتكلفة إعلانية إجمالية للفترة.
+    // تكلفة الأوردر بعد الشحن = متوسط تكلفة الأوردر الفعلية داخل الفترة.
+    // المتسلم: تكلفة البضاعة + تكلفة الشحن + نصيب الإعلان للأوردر.
+    // المرتجع: تكلفة المرتجع + نصيب الإعلان للأوردر فقط.
+    // لا تُحسب تكلفة البضاعة أو شحن التسليم للمرتجع.
     const deliveredProductCost=delivered.reduce((s,o)=>s+productCost(o),0);
     const deliveredShipping=sum(delivered,"shipping_cost");
-    const afterShipping=deliveredProductCost+deliveredShipping+returns+adSpend;
+    const adPerOrder=nonCancelled.length?adSpend/nonCancelled.length:0;
+    const totalOrderCosts=deliveredProductCost+deliveredShipping+returns+adSpend;
+    const afterShipping=nonCancelled.length?totalOrderCosts/nonCancelled.length:0;
 
-    // تكلفة الإعلان لكل أوردر = إجمالي صرف الإعلانات ÷ عدد الأوردرات.
-    // لا نغيّر هذا المؤشر عن السلوك الحالي.
-    const beforeShipping=nonCancelled.length?adSpend/nonCancelled.length:0;
-
-    // صافي الربح = الإيرادات من الأوردرات المتسلمة - كل التكاليف الفعلية:
-    // البضاعة + الشحن + المرتجعات + صرف الإعلانات.
+    // صافي الربح = الإيرادات من الأوردرات المتسلمة - كل التكاليف الفعلية للفترة:
+    // تكلفة البضاعة للمتسلمين + شحن المتسلمين + تكلفة المرتجعات + كامل صرف الإعلانات.
     const deliveredRevenue=sum(delivered,"total");
-    const profit=deliveredRevenue-afterShipping;
+    const profit=deliveredRevenue-totalOrderCosts;
     const currency=delivered[0]?.currency||orders[0]?.currency||p.company?.currency||"EGP";
 
     root.querySelectorAll(".metric-card").forEach(card=>{
@@ -126,13 +124,12 @@
       const value=card.querySelector(".kpi-value");
       if(!value)return;
       if(label==="التكلفة"||label==="تكلفة الأوردر بعد الشحن"||label==="تكلفة الاوردر بعد الشحن"){
-        const shown=money(afterShipping,currency);
         if(label==="التكلفة")card.querySelector(".kpi-label").textContent="تكلفة الأوردر بعد الشحن";
-        value.textContent=shown;
+        value.textContent=money(afterShipping,currency);
       }
       if(label==="تكلفة الأوردر"||label==="تكلفة الأوردر قبل الشحن"||label==="تكلفة الاوردر قبل الشحن"){
         card.querySelector(".kpi-label").textContent="تكلفة الأوردر قبل الشحن";
-        value.textContent=money(beforeShipping,currency);
+        value.textContent=money(adPerOrder,currency);
       }
       if(label==="الأرباح (صافي بعد التسليم)")value.textContent=money(profit,currency);
     });
