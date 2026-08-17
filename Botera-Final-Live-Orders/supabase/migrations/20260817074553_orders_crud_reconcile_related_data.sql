@@ -1,0 +1,5 @@
+-- Legacy migration marker.
+-- The 20260817074553 migration was already applied in production before the
+-- local migration was renamed to 20260817104100_orders_crud_reconcile_related_data.sql.
+-- Keep this version present locally so Supabase migration history can reconcile
+-- cleanly. No SQL needs to run again for this already-applied version.
