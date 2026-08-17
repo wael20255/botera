@@ -6,6 +6,6 @@
   "assets": {
     "directory": "./Botera-Final-Live-Orders",
     "binding": "ASSETS",
-    "run_worker_first": ["/*.html", "/assets/*"]
+    "run_worker_first": true
   }
 }
