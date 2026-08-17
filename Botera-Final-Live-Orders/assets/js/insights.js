@@ -5,7 +5,7 @@
   startBoteraRealtime?.(profile);
   DateRange.init();
 
-  let allOrders = [], allCampaigns = [], allAdExpenses = [], returnShippingCost = 0, loaded = false;
+  let allOrders = [], allCampaigns = [], allAdExpenses = [], loaded = false;
   let growthChart = null;
 
   const metricsEl = document.getElementById("reportsMetrics");
@@ -105,13 +105,9 @@
           OrdersService.list(profile.company_id),
           CampaignsService.list(profile.company_id).catch((error) => { console.warn("Could not load campaigns:", error); return []; }),
         ]);
-        const [adResult, shippingResult] = await Promise.all([
-          supabaseClient.from("ad_expenses").select("*").eq("company_id", profile.company_id).order("expense_date", { ascending: false }),
-          supabaseClient.from("shipping_settings").select("return_shipping_cost").eq("company_id", profile.company_id).maybeSingle(),
-        ]);
+        const adResult = await supabaseClient.from("ad_expenses").select("*").eq("company_id", profile.company_id).order("expense_date", { ascending: false });
         if (adResult.error) throw adResult.error;
         allAdExpenses = adResult.data || [];
-        returnShippingCost = Number(shippingResult.data?.return_shipping_cost) || 0;
         loaded = true;
       }
 
@@ -125,43 +121,34 @@
       const prevAdExpenses = allAdExpenses.filter((e) => DateRange.within(e.expense_date, range.previous));
       const currency = orders[0]?.currency || allOrders[0]?.currency || "EGP";
 
-      const sum = (list, key) => list.reduce((s, o) => s + (Number(o[key]) || 0), 0);
-      const productCostOf = (order) => {
-        const direct = Number(order.cost_total);
-        if (Number.isFinite(direct) && direct > 0) return direct;
-        const items = Array.isArray(order.order_items) ? order.order_items : [];
-        return items.reduce((s, item) => s + (Number(item.cost || 0) * Number(item.quantity || 1)), 0);
-      };
-      const productCosts = (list) => list.reduce((s, o) => s + productCostOf(o), 0);
+      const sum = (list, key) => list.reduce((s, item) => s + (Number(item[key]) || 0), 0);
       const campaignSpend = (list) => list.reduce((s, c) => s + (Number(c.spend) || 0), 0);
       const manualSpend = (list) => list.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       const adsForPeriod = (campaignList, manualList) => campaignSpend(campaignList) + manualSpend(manualList);
 
+      // Exact requested business formulas:
+      // 1) Cost per order before shipping = ad spend / total orders.
+      // 2) Cost per order after shipping = ad spend / delivered orders.
+      // 3) Revenue = delivered order totals only.
+      // 4) Net profit = delivered revenue - (after-shipping cost per delivery * deliveries).
       const calculatePeriod = (orderList, campaignList, manualList) => {
-        const nonCancelled = orderList.filter((o) => o.status !== "cancelled");
-        const delivered = nonCancelled.filter((o) => o.status === "delivered");
-        const returned = nonCancelled.filter((o) => o.status === "refunded");
+        const delivered = orderList.filter((o) => o.status === "delivered");
         const adSpend = adsForPeriod(campaignList, manualList);
-        const adPerOrder = nonCancelled.length ? adSpend / nonCancelled.length : 0;
-        const deliveredRevenue = sum(delivered, "total");
-        const deliveredProductCost = productCosts(delivered);
-        const deliveredShipping = sum(delivered, "shipping_cost");
-        const deliveredAdvertising = adPerOrder * delivered.length;
-        const returnedCost = returned.reduce((s, o) => {
-          const stored = Number(o.return_shipping_cost);
-          return s + ((Number.isFinite(stored) && stored > 0) ? stored : returnShippingCost);
-        }, 0);
-        const totalCost = deliveredProductCost + deliveredShipping + deliveredAdvertising + returnedCost;
-        const afterShippingPerOrder = nonCancelled.length ? totalCost / nonCancelled.length : 0;
-        const beforeShippingPerOrder = nonCancelled.length ? (deliveredProductCost + deliveredAdvertising) / nonCancelled.length : 0;
-        const profit = deliveredRevenue - deliveredProductCost - deliveredShipping - deliveredAdvertising - returnedCost;
-        const aov = delivered.length ? deliveredRevenue / delivered.length : 0;
+        const orderCount = orderList.length;
+        const deliveryCount = delivered.length;
+        const beforeShippingPerOrder = orderCount ? adSpend / orderCount : 0;
+        const afterShippingPerDelivery = deliveryCount ? adSpend / deliveryCount : 0;
+        const revenue = sum(delivered, "total");
+        const totalDeliveryCost = afterShippingPerDelivery * deliveryCount;
+        const profit = revenue - totalDeliveryCost;
+        const aov = deliveryCount ? revenue / deliveryCount : 0;
+
         return {
-          revenue: deliveredRevenue,
+          revenue,
           adSpend,
-          orders: orderList.length,
-          deliveries: delivered.length,
-          cost: afterShippingPerOrder,
+          orders: orderCount,
+          deliveries: deliveryCount,
+          cost: afterShippingPerDelivery,
           profit,
           aov,
           orderCost: beforeShippingPerOrder,
@@ -177,11 +164,7 @@
       const revenueSeries = buckets.map((b) => calculatePeriod(bucketOrders(b), bucketCampaigns(b), bucketAds(b)).revenue);
       const profitSeries = buckets.map((b) => calculatePeriod(bucketOrders(b), bucketCampaigns(b), bucketAds(b)).profit);
 
-      renderMetrics({
-        currency,
-        ...current,
-        prev: previous,
-      });
+      renderMetrics({ currency, ...current, prev: previous });
       renderGrowthChart(buckets, revenueSeries, profitSeries, currency);
       renderAdsReport(campaigns, adExpenses, currency);
     } catch (error) {
