@@ -19,9 +19,15 @@
     const style=document.createElement("style");
     style.id="botera-report-modern-style";
     style.textContent=`
-      #reportsMetrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;}
+      #reportsMetrics{
+        grid-template-columns:repeat(4,minmax(0,1fr));
+        gap:16px;
+      }
       #reportsMetrics .metric-card{
-        position:relative;overflow:hidden;min-height:142px;
+        position:relative;
+        overflow:hidden;
+        min-height:142px;
+        padding:22px;
         border-radius:20px;
         background:linear-gradient(145deg,var(--color-surface),var(--color-surface-2));
         border:1px solid var(--color-border);
@@ -41,8 +47,12 @@
       #reportsMetrics .metric-card.featured .kpi-label{font-size:14px;}
       #reportsMetrics .metric-card.featured .kpi-value{font-size:32px;}
       #reportsMetrics .metric-card.featured::after{
-        content:"";position:absolute;inset:auto 0 0 0;height:3px;
-        background:var(--color-neon);opacity:.9;
+        content:"";
+        position:absolute;
+        inset:auto 0 0 0;
+        height:3px;
+        background:var(--color-neon);
+        opacity:.9;
       }
       #reportsMetrics .metric-card.ad-spend::after{background:var(--color-sky);}
       #reportsMetrics .metric-card .kpi-value{letter-spacing:-.02em;}
@@ -61,17 +71,30 @@
   function arrangeMetrics(){
     const root=document.getElementById("reportsMetrics");
     if(!root)return;
+
     const cards=[...root.querySelectorAll(".metric-card")];
     if(cards.length<2)return;
+
     const getLabel=c=>c.querySelector(".kpi-label")?.textContent?.trim()||"";
-    const profit=cards.find(c=>getLabel(c)==="الأرباح (صافي بعد التسليم)");
-    const ads=cards.find(c=>getLabel(c)==="صرف الإعلانات");
-    if(profit&&ads){
-      root.prepend(ads);
-      root.prepend(profit);
-      profit.classList.add("featured");
-      ads.classList.add("featured","ad-spend");
-    }
+    const byLabel={};
+    cards.forEach(card=>{byLabel[getLabel(card)]=card;});
+
+    const profit=byLabel["الأرباح (صافي بعد التسليم)"];
+    const ads=byLabel["صرف الإعلانات"];
+    const revenue=byLabel["الإيراد"];
+    const orders=byLabel["عدد الأوردرات"];
+    const deliveries=byLabel["التسليمات"];
+    const afterShipping=byLabel["تكلفة الأوردر بعد الشحن"]||byLabel["التكلفة"];
+    const aov=byLabel["متوسط قيمة الطلب"];
+    const beforeShipping=byLabel["تكلفة الأوردر قبل الشحن"]||byLabel["تكلفة الأوردر"];
+
+    [profit,ads,revenue,orders,deliveries,afterShipping,aov,beforeShipping]
+      .filter(Boolean)
+      .forEach(card=>root.appendChild(card));
+
+    cards.forEach(card=>card.classList.remove("featured","ad-spend"));
+    if(ads)ads.classList.add("featured","ad-spend");
+    if(profit)profit.classList.add("featured");
   }
 
   async function fix(){
