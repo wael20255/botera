@@ -7,8 +7,8 @@
     : new Intl.NumberFormat("en-US",{maximumFractionDigits:2}).format(Number(v||0))+" "+c;
   const sum=(a,k)=>a.reduce((s,x)=>s+(Number(x?.[k])||0),0);
   const productCost=o=>{
-    const d=Number(o?.cost_total);
-    if(Number.isFinite(d)&&d>0)return d;
+    // تكلفة البضاعة = تكلفة المنتج فقط من Order Items.
+    // لا نستخدم cost_total حتى لا تدخل فيه مصاريف أخرى بالخطأ.
     return(Array.isArray(o?.order_items)?o.order_items:[]).reduce(
       (s,i)=>s+(Number(i?.cost)||0)*(Number(i?.quantity)||1),0
     );
@@ -104,16 +104,16 @@
     },0);
 
     // تكلفة الأوردر بعد الشحن = متوسط تكلفة الأوردر الفعلية داخل الفترة.
-    // المتسلم: تكلفة البضاعة + تكلفة الشحن + نصيب الإعلان للأوردر.
+    // المتسلم: تكلفة البضاعة فقط + تكلفة الشحن + نصيب الإعلان للأوردر.
     // المرتجع: تكلفة المرتجع + نصيب الإعلان للأوردر فقط.
-    // لا تُحسب تكلفة البضاعة أو شحن التسليم للمرتجع.
+    // تكلفة البضاعة تؤخذ فقط من Order Items ولا يدخل معها أي مصروف آخر.
     const deliveredProductCost=delivered.reduce((s,o)=>s+productCost(o),0);
     const deliveredShipping=sum(delivered,"shipping_cost");
     const adPerOrder=nonCancelled.length?adSpend/nonCancelled.length:0;
     const totalOrderCosts=deliveredProductCost+deliveredShipping+returns+adSpend;
     const afterShipping=nonCancelled.length?totalOrderCosts/nonCancelled.length:0;
 
-    // صافي الربح = الإيرادات من الأوردرات المتسلمة - كل التكاليف الفعلية للفترة:
+    // صافي الربح = إيرادات الأوردرات المتسلمة - كل التكاليف الفعلية للفترة:
     // تكلفة البضاعة للمتسلمين + شحن المتسلمين + تكلفة المرتجعات + كامل صرف الإعلانات.
     const deliveredRevenue=sum(delivered,"total");
     const profit=deliveredRevenue-totalOrderCosts;
