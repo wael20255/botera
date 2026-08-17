@@ -2,7 +2,10 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "botera",
   "compatibility_date": "2026-08-17",
+  "main": "./worker.js",
   "assets": {
-    "directory": "./Botera-Final-Live-Orders"
+    "directory": "./Botera-Final-Live-Orders",
+    "binding": "ASSETS",
+    "run_worker_first": ["/*.html", "/assets/*"]
   }
 }
