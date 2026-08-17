@@ -97,9 +97,12 @@
   function ensureMetricCards() {
     const root = document.getElementById("reportsMetrics");
     if (!root || root.dataset.cardsReady === "1") return;
-    const cards = [
+
+    const heroCards = [
       "صرف الإعلانات",
       "الأرباح (صافي بعد التسليم)",
+    ];
+    const restCards = [
       "الإيراد",
       "عدد الأوردرات",
       "التسليمات",
@@ -107,12 +110,44 @@
       "تكلفة الأوردر قبل الشحن",
       "متوسط قيمة الطلب",
     ];
-    root.innerHTML = cards.map((label) => `
+
+    const cardMarkup = (label) => `
       <article class="card kpi-card metric-card">
         <span class="kpi-label">${label}</span>
         <strong class="kpi-value">—</strong>
         <div class="kpi-delta"><span class="kpi-delta-muted">جاري الحساب...</span></div>
-      </article>`).join("");
+      </article>`;
+
+    root.classList.add("insights-metrics-layout");
+    root.innerHTML = `
+      <div class="insights-kpi-hero">
+        ${heroCards.map(cardMarkup).join("")}
+      </div>
+      <div class="insights-kpi-rest">
+        ${restCards.map(cardMarkup).join("")}
+      </div>
+    `;
+
+    if (!document.getElementById("boteraInsightsKpiStyle")) {
+      const style = document.createElement("style");
+      style.id = "boteraInsightsKpiStyle";
+      style.textContent = `
+        .insights-metrics-layout{display:block!important;margin-bottom:var(--space-6)}
+        .insights-kpi-hero{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-5);margin-bottom:var(--space-5)}
+        .insights-kpi-rest{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-4)}
+        .insights-kpi-hero .metric-card,.insights-kpi-rest .metric-card{position:relative;overflow:hidden;border:1px solid var(--color-border);border-radius:20px;background:linear-gradient(145deg,var(--color-surface),var(--color-surface-2));box-shadow:0 12px 30px rgba(0,0,0,.18);transition:transform 160ms ease,box-shadow 160ms ease,border-color 160ms ease}
+        .insights-kpi-hero .metric-card{min-height:150px;padding:var(--space-6)}
+        .insights-kpi-rest .metric-card{min-height:124px;padding:var(--space-5)}
+        .insights-kpi-hero .metric-card:hover,.insights-kpi-rest .metric-card:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(0,0,0,.24);border-color:var(--color-neon)}
+        .insights-kpi-hero .metric-card:first-child:before,.insights-kpi-hero .metric-card:last-child:before{content:"";position:absolute;inset-inline-start:0;inset-block:0;width:4px;background:var(--color-neon);opacity:.9}
+        .insights-kpi-hero .kpi-value{font-size:clamp(1.65rem,2.5vw,2.35rem);margin-top:var(--space-3)}
+        .insights-kpi-rest .kpi-value{font-size:clamp(1.2rem,1.7vw,1.55rem)}
+        @media (max-width:900px){.insights-kpi-rest{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media (max-width:640px){.insights-kpi-hero{grid-template-columns:1fr}.insights-kpi-rest{grid-template-columns:1fr}}
+      `;
+      document.head.appendChild(style);
+    }
+
     root.dataset.cardsReady = "1";
   }
 
