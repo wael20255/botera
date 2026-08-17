@@ -1,0 +1,61 @@
+/* Insights-only visual layout. No calculation or data logic. */
+#reportsMetrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+/* The two headline cards occupy exactly the same space in the first row. */
+#reportsMetrics .metric-card:nth-child(1),
+#reportsMetrics .metric-card:nth-child(2) {
+  grid-column: span 2;
+}
+
+#reportsMetrics .metric-card {
+  min-width: 0;
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-2) 100%);
+  box-shadow: 0 10px 30px rgba(0,0,0,.18);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+#reportsMetrics .metric-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-border-strong);
+  box-shadow: 0 14px 34px rgba(0,0,0,.24);
+}
+
+#reportsMetrics .kpi-value {
+  font-size: clamp(1.7rem, 2.2vw, 2.5rem);
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 900px) {
+  #reportsMetrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #reportsMetrics .metric-card:nth-child(1),
+  #reportsMetrics .metric-card:nth-child(2) {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 640px) {
+  #reportsMetrics {
+    grid-template-columns: 1fr;
+  }
+  #reportsMetrics .metric-card,
+  #reportsMetrics .metric-card:nth-child(1),
+  #reportsMetrics .metric-card:nth-child(2) {
+    grid-column: span 1;
+  }
+}
+
+/* Keep the shared topbar/date selector visible on Insights. */
+body[data-page="insights"] .topbar {
+  display: flex;
+}
+body[data-page="insights"] .daterange-bar {
+  display: flex;
+  min-width: 0;
+}
