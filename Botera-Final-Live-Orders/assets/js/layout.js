@@ -38,25 +38,18 @@ function setupLayout(profile) {
   });
 
   // Load additive live fixes once on every authenticated page.
-  if (!document.querySelector('script[data-botera-live-fixes]')) {
+  const fixes = [
+    ["data-botera-live-fixes", "assets/js/live-fixes.js"],
+    ["data-botera-order-detail-fix", "assets/js/order-detail-fix.js"],
+    ["data-botera-report-cost-fix", "assets/js/report-cost-fix.js"],
+    ["data-botera-order-list-fix", "assets/js/order-list-fix.js"],
+  ];
+  fixes.forEach(([marker, src]) => {
+    if (document.querySelector(`script[${marker}]`)) return;
     const script = document.createElement("script");
-    script.src = "assets/js/live-fixes.js";
-    script.dataset.boteraLiveFixes = "1";
+    script.src = src;
+    script.setAttribute(marker, "1");
     script.defer = true;
     document.head.appendChild(script);
-  }
-  if (!document.querySelector('script[data-botera-order-detail-fix]')) {
-    const script = document.createElement("script");
-    script.src = "assets/js/order-detail-fix.js";
-    script.dataset.boteraOrderDetailFix = "1";
-    script.defer = true;
-    document.head.appendChild(script);
-  }
-  if (!document.querySelector('script[data-botera-report-cost-fix]')) {
-    const script = document.createElement("script");
-    script.src = "assets/js/report-cost-fix.js";
-    script.dataset.boteraReportCostFix = "1";
-    script.defer = true;
-    document.head.appendChild(script);
-  }
+  });
 }
