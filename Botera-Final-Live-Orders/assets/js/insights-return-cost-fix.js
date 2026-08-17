@@ -103,19 +103,22 @@
       return s+(Number.isFinite(stored)&&stored>0?stored:defaultReturnCost);
     },0);
 
-    // تكلفة الأوردر بعد الشحن =
-    // المتسلم: تكلفة البضاعة + تكلفة الشحن
-    // المرتجع: تكلفة المرتجع فقط
-    // + صرف الإعلانات (أي تكلفة الإعلان موزعة على كل الأوردرات)
+    // تكلفة الأوردر بعد الشحن = إجمالي التكاليف الفعلية للأوردرات:
+    // المتسلم = تكلفة البضاعة فقط + تكلفة الشحن.
+    // المرتجع = تكلفة المرتجع فقط، ولا تُحسب تكلفة البضاعة للمرتجع.
+    // صرف الإعلانات يُضاف كتكلفة إعلانية إجمالية للفترة.
     const deliveredProductCost=delivered.reduce((s,o)=>s+productCost(o),0);
     const deliveredShipping=sum(delivered,"shipping_cost");
     const afterShipping=deliveredProductCost+deliveredShipping+returns+adSpend;
 
-    // تكلفة الإعلان لكل أوردر = إجمالي صرف الإعلانات ÷ عدد الأوردرات
+    // تكلفة الإعلان لكل أوردر = إجمالي صرف الإعلانات ÷ عدد الأوردرات.
+    // لا نغيّر هذا المؤشر عن السلوك الحالي.
     const beforeShipping=nonCancelled.length?adSpend/nonCancelled.length:0;
+
+    // صافي الربح = الإيرادات من الأوردرات المتسلمة - كل التكاليف الفعلية:
+    // البضاعة + الشحن + المرتجعات + صرف الإعلانات.
     const deliveredRevenue=sum(delivered,"total");
-    const deliveredCost=deliveredProductCost+deliveredShipping;
-    const profit=deliveredRevenue-deliveredCost-returns-adSpend;
+    const profit=deliveredRevenue-afterShipping;
     const currency=delivered[0]?.currency||orders[0]?.currency||p.company?.currency||"EGP";
 
     root.querySelectorAll(".metric-card").forEach(card=>{
