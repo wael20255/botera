@@ -10,6 +10,7 @@ const ProductsService = (function () {
       .from("products")
       .select("*")
       .eq("company_id", companyId)
+      .eq("status", "active")
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data;
@@ -19,7 +20,7 @@ const ProductsService = (function () {
   async function create(companyId, product) {
     const { data, error } = await supabaseClient
       .from("products")
-      .insert({ company_id: companyId, ...product })
+      .insert({ company_id: companyId, status: "active", ...product })
       .select()
       .single();
     if (error) throw error;
@@ -38,7 +39,13 @@ const ProductsService = (function () {
   }
 
   async function remove(productId) {
-    const { error } = await supabaseClient.from("products").delete().eq("id", productId);
+    // Keep historical Order Items intact; an actual DELETE is blocked by the
+    // order_items FK. Removing a product from the catalog therefore archives
+    // it by status so it disappears from Settings without corrupting history.
+    const { error } = await supabaseClient
+      .from("products")
+      .update({ status: "inactive", updated_at: new Date().toISOString() })
+      .eq("id", productId);
     if (error) throw error;
   }
 
