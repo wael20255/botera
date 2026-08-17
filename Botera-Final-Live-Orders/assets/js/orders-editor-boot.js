@@ -9,7 +9,7 @@
       const existing = document.querySelector(`script[data-orders-editor-src="${src}"]`);
       if(existing){ resolve(); return; }
       const script = document.createElement("script");
-      script.src = `${src}?v=20260817-authfix2`;
+      script.src = `${src}?v=20260817-editor-v2`;
       script.dataset.ordersEditorSrc = src;
       script.onload = resolve;
       script.onerror = () => reject(new Error(`Failed to load ${src}`));
