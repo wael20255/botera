@@ -13,6 +13,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PRODUCTION_URL: https://botera.botera.workers.dev
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -28,3 +31,19 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: "4.123.0"
           command: deploy
+
+      - name: Verify production serves this commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='BOTERA_PRODUCTION_BUILD=c61c3b7'
+          for attempt in {1..12}; do
+            echo "Production verification attempt ${attempt}/12"
+            if curl -fsSL --retry 2 --retry-delay 1 "${PRODUCTION_URL}/orders.html?verify=${GITHUB_SHA}" | grep -Fq "${expected}"; then
+              echo "Production is serving commit ${GITHUB_SHA}."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Production did not serve the expected build marker."
+          exit 1
