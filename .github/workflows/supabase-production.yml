@@ -43,7 +43,7 @@ jobs:
           supabase projects list --output json >/dev/null
 
       - name: Deploy database migrations
-        run: supabase db push --project-ref "$SUPABASE_PROJECT_ID"
+        run: supabase db push --include-all --project-ref "$SUPABASE_PROJECT_ID"
 
       - name: Deploy Edge Functions
         run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_ID"
