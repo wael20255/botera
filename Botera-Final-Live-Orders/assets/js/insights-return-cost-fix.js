@@ -74,37 +74,34 @@
     const cs=campaigns.filter(c=>inRange(c.created_at,r));
     const ae=ads.filter(e=>inRange(e.expense_date,r));
 
-    // 1) Advertising cost per order = total ad spend / all non-cancelled orders in the selected period.
+    // Advertising allocation is calculated once per non-cancelled order.
     const adSpend=sum(cs,"spend")+sum(ae,"amount");
     const adPerOrder=nonCancelled.length?adSpend/nonCancelled.length:0;
 
-    // 2) Delivered order cost = product cost only + delivery shipping + one ad allocation for each delivered order.
-    //    Product cost is strictly the product's cost field, never its selling price / order total.
+    // Delivered order = product + delivery shipping + advertising allocation.
     const deliveredProductCost=delivered.reduce((s,o)=>s+productCost(o),0);
     const deliveredShipping=sum(delivered,"shipping_cost");
     const deliveredAdvertising=adPerOrder*delivered.length;
     const deliveredCostTotal=deliveredProductCost+deliveredShipping+deliveredAdvertising;
 
-    // 3) Returned order cost = return shipping cost + one ad allocation for each returned order.
-    //    No product cost and no delivery shipping are charged to returned orders.
+    // Returned order = return shipping cost ONLY. No product cost, delivery shipping,
+    // or advertising allocation is charged to a returned order.
     const defaultReturnCost=Number(shippingSettings?.return_shipping_cost)||0;
     const returnedCostTotal=returned.reduce((s,o)=>{
       const stored=Number(o?.return_shipping_cost);
       const returnCost=(Number.isFinite(stored)&&stored>0)?stored:defaultReturnCost;
       return s+returnCost;
     },0);
-    const returnedAdvertising=adPerOrder*returned.length;
-    const returnedOrderCosts=returnedCostTotal+returnedAdvertising;
 
-    // 4) "Cost per order after shipping" is the average real cost per non-cancelled order.
-    //    Every order contributes exactly according to its own status using the two rules above.
-    const afterShippingTotal=deliveredCostTotal+returnedOrderCosts;
+    // Average real cost per non-cancelled order.
+    const afterShippingTotal=deliveredCostTotal+returnedCostTotal;
     const afterShippingPerOrder=nonCancelled.length?afterShippingTotal/nonCancelled.length:0;
 
-    // 5) Net profit = delivered revenue minus ALL actual costs for the selected period.
-    //    Returned orders contribute only return cost + ad allocation; no product cost is deducted for them.
+    // Delivered revenue only.
     const deliveredRevenue=sum(delivered,"total");
-    const profit=deliveredRevenue-deliveredProductCost-deliveredShipping-returnedCostTotal-adSpend;
+
+    // Net profit = delivered revenue - delivered order costs - return costs.
+    const profit=deliveredRevenue-deliveredProductCost-deliveredShipping-deliveredAdvertising-returnedCostTotal;
     const currency=delivered[0]?.currency||orders[0]?.currency||p.company?.currency||"EGP";
 
     root.querySelectorAll(".metric-card").forEach(card=>{
@@ -120,6 +117,9 @@
         value.textContent=money(adPerOrder,currency);
       }
       if(label==="الأرباح (صافي بعد التسليم)")value.textContent=money(profit,currency);
+      if(label==="الإيراد")value.textContent=money(deliveredRevenue,currency);
+      if(label==="متوسط قيمة الطلب")value.textContent=money(delivered.length?deliveredRevenue/delivered.length:0,currency);
+      if(label==="التسليمات")value.textContent=String(delivered.length);
     });
 
     installReportStyle();
