@@ -133,7 +133,8 @@
       style.id = "boteraInsightsKpiStyle";
       style.textContent = `
         .insights-metrics-layout{display:block!important;margin-bottom:var(--space-6)}
-        .insights-kpi-hero{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-5);margin-bottom:var(--space-5)}
+        .insights-kpi-hero{display:flex;justify-content:center;gap:var(--space-5);margin-bottom:var(--space-5)}
+        .insights-kpi-hero .metric-card{flex:0 0 calc((100% - 2 * var(--space-5)) / 3)}
         .insights-kpi-rest{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-4)}
         .insights-kpi-hero .metric-card,.insights-kpi-rest .metric-card{position:relative;overflow:hidden;border:1px solid var(--color-border);border-radius:20px;background:linear-gradient(145deg,var(--color-surface),var(--color-surface-2));box-shadow:0 12px 30px rgba(0,0,0,.18);transition:transform 160ms ease,box-shadow 160ms ease,border-color 160ms ease}
         .insights-kpi-hero .metric-card{min-height:150px;padding:var(--space-6)}
@@ -142,8 +143,8 @@
         .insights-kpi-hero .metric-card:first-child:before,.insights-kpi-hero .metric-card:last-child:before{content:"";position:absolute;inset-inline-start:0;inset-block:0;width:4px;background:var(--color-neon);opacity:.9}
         .insights-kpi-hero .kpi-value{font-size:clamp(1.65rem,2.5vw,2.35rem);margin-top:var(--space-3)}
         .insights-kpi-rest .kpi-value{font-size:clamp(1.2rem,1.7vw,1.55rem)}
-        @media (max-width:900px){.insights-kpi-rest{grid-template-columns:repeat(2,minmax(0,1fr))}}
-        @media (max-width:640px){.insights-kpi-hero{grid-template-columns:1fr}.insights-kpi-rest{grid-template-columns:1fr}}
+        @media (max-width:900px){.insights-kpi-hero .metric-card{flex-basis:calc((100% - var(--space-5)) / 2)}.insights-kpi-rest{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media (max-width:640px){.insights-kpi-hero{flex-direction:column}.insights-kpi-hero .metric-card{flex-basis:auto;width:100%}.insights-kpi-rest{grid-template-columns:1fr}}
       `;
       document.head.appendChild(style);
     }
@@ -253,7 +254,7 @@
     try {
       const profile = window.__boteraLiveProfile || await useAuth.ensureAuthenticated({ requiredPermission: "can_view_insights" });
       if (!profile) return;
-
+      setupLayout(profile);
       ensureMetricCards();
       const range = DateRange.getCurrent();
       const previousRange = range.previous;
