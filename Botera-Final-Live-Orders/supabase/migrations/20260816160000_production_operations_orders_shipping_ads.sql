@@ -64,6 +64,14 @@ grant execute on function public.save_order_from_chat(uuid,uuid,uuid,jsonb) to s
 alter table public.shipping_settings enable row level security;
 alter table public.shipping_expenses enable row level security;
 alter table public.ad_expenses enable row level security;
+
+drop policy if exists shipping_settings_select on public.shipping_settings;
+drop policy if exists shipping_settings_write on public.shipping_settings;
+drop policy if exists shipping_expenses_select on public.shipping_expenses;
+drop policy if exists shipping_expenses_write on public.shipping_expenses;
+drop policy if exists ad_expenses_select on public.ad_expenses;
+drop policy if exists ad_expenses_write on public.ad_expenses;
+
 create policy shipping_settings_select on public.shipping_settings for select using (company_id=current_company_id() or is_platform_owner());
 create policy shipping_settings_write on public.shipping_settings for all using (company_id=current_company_id() and exists(select 1 from profiles p where p.id=auth.uid() and (p.can_view_settings or p.is_platform_owner))) with check (company_id=current_company_id() and exists(select 1 from profiles p where p.id=auth.uid() and (p.can_view_settings or p.is_platform_owner)));
 create policy shipping_expenses_select on public.shipping_expenses for select using (company_id=current_company_id() or is_platform_owner());
