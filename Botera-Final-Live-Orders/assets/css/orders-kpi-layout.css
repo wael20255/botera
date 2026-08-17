@@ -1,0 +1,27 @@
+/* Orders KPI positioning only — no visual/card styling changes. */
+#ordersKpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* First two KPI cards get their own top row. */
+#ordersKpis .kpi-card:nth-child(1),
+#ordersKpis .kpi-card:nth-child(2) {
+  grid-column: span 2;
+}
+
+@media (max-width: 900px) {
+  #ordersKpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #ordersKpis .kpi-card:nth-child(1),
+  #ordersKpis .kpi-card:nth-child(2) {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 640px) {
+  #ordersKpis {
+    grid-template-columns: 1fr;
+  }
+}
