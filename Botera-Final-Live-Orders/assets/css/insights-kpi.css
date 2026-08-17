@@ -1,0 +1,96 @@
+/* Insights KPI presentation only — no data or calculation changes. */
+[data-page="insights"] .kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+[data-page="insights"] .metric-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 132px;
+  padding: 20px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018));
+  box-shadow: 0 14px 32px rgba(0,0,0,0.22);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+[data-page="insights"] .metric-card::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--color-neon);
+  opacity: 0.8;
+}
+
+[data-page="insights"] .metric-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255,255,255,0.14);
+  box-shadow: 0 18px 38px rgba(0,0,0,0.28);
+}
+
+[data-page="insights"] .metric-card .kpi-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+[data-page="insights"] .metric-card .kpi-value {
+  margin-top: 12px;
+  font-size: clamp(24px, 2.1vw, 34px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+[data-page="insights"] .metric-card .kpi-delta {
+  margin-top: 10px;
+}
+
+/* First row: ad spend + net profit side by side, larger and emphasized. */
+[data-page="insights"] .metric-card:nth-child(1),
+[data-page="insights"] .metric-card:nth-child(2) {
+  grid-row: 1;
+  min-height: 154px;
+}
+
+[data-page="insights"] .metric-card:nth-child(1) {
+  grid-column: 1 / span 2;
+}
+
+[data-page="insights"] .metric-card:nth-child(2) {
+  grid-column: 3 / span 2;
+}
+
+[data-page="insights"] .metric-card:nth-child(1) .kpi-value,
+[data-page="insights"] .metric-card:nth-child(2) .kpi-value {
+  font-size: clamp(30px, 2.6vw, 42px);
+}
+
+/* Emphasize the net profit card visually without changing its value. */
+[data-page="insights"] .metric-card:nth-child(2)::before {
+  background: linear-gradient(180deg, var(--color-neon), var(--color-chart-teal));
+}
+
+@media (max-width: 980px) {
+  [data-page="insights"] .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  [data-page="insights"] .metric-card:nth-child(1),
+  [data-page="insights"] .metric-card:nth-child(2) {
+    grid-row: auto;
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  [data-page="insights"] .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
