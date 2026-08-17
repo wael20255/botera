@@ -1,15 +1,16 @@
-// services/orders-service — orders + the one write action the app allows:
-// updating an order's status (see supabase/setup.sql for the RLS policy).
+// services/orders-service — order reads, status updates, and the transactional
+// order editor write path backed by public.save_order_with_items().
 const OrdersService = (function () {
   async function list(companyId) {
     const { data, error } = await supabaseClient
       .from("orders")
-      .select("*, customers(name, phone, address, city, country), conversations(channel), order_items(product_name, sku, quantity, price, cost, total)")
+      .select("*, customers(name, phone, address, city, country, email, notes), conversations(channel), order_items(id, product_id, product_name, sku, quantity, price, cost, total)")
       .eq("company_id", companyId)
       .order("created_at", { ascending: false });
     if (error) throw error;
     return data;
   }
+
   async function updateStatus(orderId, status) {
     const patch = { status, updated_at: new Date().toISOString() };
     if (status === "delivered") patch.shipping_status = "delivered";
@@ -23,5 +24,20 @@ const OrdersService = (function () {
     if (error) throw error;
     return data;
   }
-  return { list, updateStatus };
+
+  async function saveEditor(payload) {
+    const { data, error } = await supabaseClient.rpc("save_order_with_items", {
+      p_company_id: payload.companyId,
+      p_order_id: payload.orderId || null,
+      p_customer_id: payload.customerId || null,
+      p_customer: payload.customer || {},
+      p_order: payload.order || {},
+      p_items: payload.items || [],
+    });
+    if (error) throw error;
+    if (!data) throw new Error("تعذر حفظ الأوردر.");
+    return data;
+  }
+
+  return { list, updateStatus, saveEditor };
 })();
