@@ -1,0 +1,29 @@
+name: Deploy Botera to Cloudflare
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Botera-Final-Live-Orders/**'
+      - 'wrangler.jsonc'
+      - '.github/workflows/cloudflare-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy Botera Worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
