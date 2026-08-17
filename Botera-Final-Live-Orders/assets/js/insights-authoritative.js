@@ -9,44 +9,6 @@
   const sum = (list, key) =>
     (list || []).reduce((total, row) => total + (Number(row?.[key]) || 0), 0);
 
-  function ensureMetricsMarkup() {
-    const root = document.getElementById("reportsMetrics");
-    if (!root || root.children.length > 0) return;
-    const cards = [
-      ["revenue", "الإيراد"],
-      ["adSpend", "صرف الإعلانات"],
-      ["orders", "عدد الأوردرات"],
-      ["deliveries", "التسليمات"],
-      ["afterShipping", "تكلفة الأوردر بعد الشحن"],
-      ["profit", "الأرباح (صافي بعد التسليم)"],
-      ["aov", "متوسط قيمة الطلب"],
-      ["beforeShipping", "تكلفة الأوردر قبل الشحن"],
-    ];
-    root.innerHTML = cards.map(([key, label]) => `
-      <article class="card kpi-card metric-card" data-metric="${key}">
-        <span class="kpi-label">${label}</span>
-        <strong class="kpi-value">—</strong>
-        <div class="kpi-delta"><span class="kpi-delta-muted">جاري الحساب...</span></div>
-      </article>
-    `).join("");
-  }
-
-  function setMetric(key, value, currency, previous, isCount = false) {
-    const card = document.querySelector(`#reportsMetrics [data-metric="${key}"]`);
-    if (!card) return;
-    const valueEl = card.querySelector(".kpi-value");
-    const deltaEl = card.querySelector(".kpi-delta");
-    if (valueEl) valueEl.textContent = isCount ? String(value) : money(value, currency);
-    if (deltaEl) {
-      if (previous > 0) {
-        const change = ((value - previous) / previous) * 100;
-        deltaEl.innerHTML = `<span class="${change >= 0 ? "kpi-delta-up" : "kpi-delta-down"}">${change >= 0 ? "▲" : "▼"} ${Math.abs(change).toFixed(1)}%</span><span class="kpi-delta-muted">مقابل الفترة السابقة</span>`;
-      } else {
-        deltaEl.innerHTML = `<span class="kpi-delta-muted">لا تتوفر مقارنة بعد</span>`;
-      }
-    }
-  }
-
   function productCostForOrder(order, activeById, activeByName) {
     const items = Array.isArray(order?.order_items) ? order.order_items : [];
     return items.reduce((total, item) => {
@@ -132,6 +94,62 @@
     };
   }
 
+  function ensureMetricCards() {
+    const root = document.getElementById("reportsMetrics");
+    if (!root || root.dataset.cardsReady === "1") return;
+    const cards = [
+      "صرف الإعلانات",
+      "الأرباح (صافي بعد التسليم)",
+      "الإيراد",
+      "عدد الأوردرات",
+      "التسليمات",
+      "تكلفة الأوردر بعد الشحن",
+      "تكلفة الأوردر قبل الشحن",
+      "متوسط قيمة الطلب",
+    ];
+    root.innerHTML = cards.map((label) => `
+      <article class="card kpi-card metric-card">
+        <span class="kpi-label">${label}</span>
+        <strong class="kpi-value">—</strong>
+        <div class="kpi-delta"><span class="kpi-delta-muted">جاري الحساب...</span></div>
+      </article>`).join("");
+    root.dataset.cardsReady = "1";
+  }
+
+  function setMetric(label, value, currency, previous) {
+    const cards = [...document.querySelectorAll("#reportsMetrics .metric-card")];
+    const card = cards.find((item) => item.querySelector(".kpi-label")?.textContent?.trim() === label);
+    if (!card) return;
+    const valueEl = card.querySelector(".kpi-value");
+    const deltaEl = card.querySelector(".kpi-delta");
+    if (valueEl) valueEl.textContent = money(value, currency);
+    if (deltaEl) {
+      if (previous > 0) {
+        const change = ((value - previous) / previous) * 100;
+        deltaEl.innerHTML = `<span class="${change >= 0 ? "kpi-delta-up" : "kpi-delta-down"}">${change >= 0 ? "▲" : "▼"} ${Math.abs(change).toFixed(1)}%</span><span class="kpi-delta-muted">مقابل الفترة السابقة</span>`;
+      } else {
+        deltaEl.innerHTML = `<span class="kpi-delta-muted">لا تتوفر مقارنة بعد</span>`;
+      }
+    }
+  }
+
+  function setCountMetric(label, value, previous) {
+    const cards = [...document.querySelectorAll("#reportsMetrics .metric-card")];
+    const card = cards.find((item) => item.querySelector(".kpi-label")?.textContent?.trim() === label);
+    if (!card) return;
+    const valueEl = card.querySelector(".kpi-value");
+    const deltaEl = card.querySelector(".kpi-delta");
+    if (valueEl) valueEl.textContent = String(value);
+    if (deltaEl) {
+      if (previous > 0) {
+        const change = ((value - previous) / previous) * 100;
+        deltaEl.innerHTML = `<span class="${change >= 0 ? "kpi-delta-up" : "kpi-delta-down"}">${change >= 0 ? "▲" : "▼"} ${Math.abs(change).toFixed(1)}%</span><span class="kpi-delta-muted">مقابل الفترة السابقة</span>`;
+      } else {
+        deltaEl.innerHTML = `<span class="kpi-delta-muted">لا تتوفر مقارنة بعد</span>`;
+      }
+    }
+  }
+
   function renderChart(range, orders, campaigns, ads, products, currency) {
     const root = document.getElementById("growthChartArea");
     if (!root || typeof Chart === "undefined") return;
@@ -157,8 +175,26 @@
       data: {
         labels: buckets.map((b) => b.label),
         datasets: [
-          { label: "الإيراد", data: revenueSeries, borderColor: css.getPropertyValue("--color-chart-teal").trim(), backgroundColor: css.getPropertyValue("--color-chart-teal-fill").trim(), fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 },
-          { label: "صافي الربح بعد التسليم", data: profitSeries, borderColor: css.getPropertyValue("--color-neon").trim(), backgroundColor: css.getPropertyValue("--color-neon-10").trim(), fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 },
+          {
+            label: "الإيراد",
+            data: revenueSeries,
+            borderColor: css.getPropertyValue("--color-chart-teal").trim(),
+            backgroundColor: css.getPropertyValue("--color-chart-teal-fill").trim(),
+            fill: true,
+            tension: 0.35,
+            pointRadius: 0,
+            borderWidth: 2,
+          },
+          {
+            label: "صافي الربح بعد التسليم",
+            data: profitSeries,
+            borderColor: css.getPropertyValue("--color-neon").trim(),
+            backgroundColor: css.getPropertyValue("--color-neon-10").trim(),
+            fill: true,
+            tension: 0.35,
+            pointRadius: 0,
+            borderWidth: 2,
+          },
         ],
       },
       options: {
@@ -180,24 +216,25 @@
     if (running || document.body?.dataset?.page !== "insights") return;
     running = true;
     try {
-      ensureMetricsMarkup();
       const profile = window.__boteraLiveProfile || await useAuth.ensureAuthenticated({ requiredPermission: "can_view_insights" });
       if (!profile) return;
 
+      ensureMetricCards();
       const range = DateRange.getCurrent();
+      const previousRange = range.previous;
       const data = await fetchData(profile);
       const current = calculatePeriod(data.orders, data.campaigns, data.ads, data, range);
-      const previous = calculatePeriod(data.orders, data.campaigns, data.ads, data, range.previous);
+      const previous = calculatePeriod(data.orders, data.campaigns, data.ads, data, previousRange);
       const currency = data.orders.find((o) => o.currency)?.currency || profile.company?.currency || "EGP";
 
-      setMetric("revenue", current.revenue, currency, previous.revenue);
-      setMetric("adSpend", current.adSpend, currency, previous.adSpend);
-      setMetric("orders", current.orders, currency, previous.orders, true);
-      setMetric("deliveries", current.deliveries, currency, previous.deliveries, true);
-      setMetric("afterShipping", current.afterShipping, currency, previous.afterShipping);
-      setMetric("profit", current.profit, currency, previous.profit);
-      setMetric("aov", current.aov, currency, previous.aov);
-      setMetric("beforeShipping", current.beforeShipping, currency, previous.beforeShipping);
+      setMetric("الإيراد", current.revenue, currency, previous.revenue);
+      setMetric("صرف الإعلانات", current.adSpend, currency, previous.adSpend);
+      setCountMetric("عدد الأوردرات", current.orders, previous.orders);
+      setCountMetric("التسليمات", current.deliveries, previous.deliveries);
+      setMetric("تكلفة الأوردر بعد الشحن", current.afterShipping, currency, previous.afterShipping);
+      setMetric("الأرباح (صافي بعد التسليم)", current.profit, currency, previous.profit);
+      setMetric("متوسط قيمة الطلب", current.aov, currency, previous.aov);
+      setMetric("تكلفة الأوردر قبل الشحن", current.beforeShipping, currency, previous.beforeShipping);
 
       renderChart(range, data.orders, data.campaigns, data.ads, data, currency);
     } catch (error) {
@@ -213,5 +250,5 @@
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) setTimeout(render, 100);
   });
-  setTimeout(render, 1200);
+  setTimeout(render, 1500);
 })();
