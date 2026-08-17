@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>لوحة التحكم | Botera Co.</title>
-  <link rel="stylesheet" href="assets/css/tokens.css"><link rel="stylesheet" href="assets/css/base.css"><link rel="stylesheet" href="assets/css/layout.css">
+  <link rel="stylesheet" href="assets/css/tokens.css"><link rel="stylesheet" href="assets/css/layout.css">
 <link rel="stylesheet" href="assets/css/dashboard.css">
 <link rel="stylesheet" href="assets/css/daterange.css"><link rel="stylesheet" href="assets/css/daterange.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -22,7 +22,7 @@
       <a href="insights.html" class="nav-item" data-page="insights" data-requires="can_view_insights"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>Insights</a>
       <a href="automation.html" class="nav-item" data-page="automation" data-requires="can_view_automation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A6 6 0 1 0 8.5 12.5c.75.75 1.22 1.5 1.41 2.5"/></svg>Automation</a>
     </nav>
-    <a href="settings.html" class="nav-item nav-item-bottom" data-page="settings" data-requires="can_view_settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</a>
+    <a href="settings.html" class="nav-item nav-item-bottom" data-page="settings" data-requires="can_view_settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51 1V21a2 2 0 0 0-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 1 .33-1.82 1.65 1.65 0 0 1-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 1 4.6 9a1.65 1.65 0 0 1-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 1 1.82.33H9a1.65 1.65 0 0 1 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 1 1 1.51 1.65 1.65 0 0 1 1.82-.33l.06.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 1-.33 1.82V9a1.65 1.65 0 0 1 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 1-1.51 1z"/></svg>Settings</a>
   </aside>
   <header class="topbar">
     <button class="menu-toggle" id="menuToggle" aria-label="Open menu">☰</button>
@@ -39,607 +39,142 @@
   </header>
   <main class="page-main">
 
-    <!-- ========================= -->
-    <!-- Dashboard Hero -->
-    <!-- ========================= -->
-
     <section class="dashboard-hero">
-
         <div class="hero-left">
-
             <div class="hero-text">
-
-                <span class="hero-badge">
-                    🚀 Dashboard Overview
-                </span>
-
-                <h1>
-                    أهلاً بك في لوحة تحكم
-                    <span>Botera</span>
-                </h1>
-
-                <p>
-                    تابع أداء شركتك بالكامل من مكان واحد.
-                    راقب الإيرادات، الطلبات، العملاء، أداء الذكاء الاصطناعي，
-                    والمحادثات في نفس الوقت  .
-                </p>
-
+                <span class="hero-badge">🚀 Dashboard Overview</span>
+                <h1>أهلاً بك في لوحة تحكم <span>Botera</span></h1>
+                <p>تابع أداء شركتك بالكامل من مكان واحد. راقب الإيرادات، الطلبات، العملاء، أداء الذكاء الاصطناعي， والمحادثات في نفس الوقت  .</p>
             </div>
-
-
     </section>
 
-    <!-- ========================= -->
-    <!-- Dashboard Heading -->
-    <!-- ========================= -->
-
-    <div class="dashboard-section-title">
-
-    </div>
-
-    <!-- ========================= -->
-<!-- KPI CARDS -->
-<!-- ========================= -->
+    <div class="dashboard-section-title"></div>
 
 <section class="kpi-grid dashboard-kpis">
 
-    <!-- Revenue -->
-
     <article class="card kpi-card premium-card">
-
-        <div class="kpi-icon revenue-icon">
-            💰
-        </div>
-
+        <div class="kpi-icon revenue-icon">💰</div>
         <div class="kpi-content">
-
-            <span class="kpi-label">
-                إجمالي الإيرادات
-            </span>
-
-            <strong
-                class="kpi-value"
-                id="revenueValue">
-                —
-            </strong>
-
-            <div
-                class="kpi-delta positive"
-                id="revenueDelta">
-            </div>
-
+            <span class="kpi-label">إجمالي المبيعات</span>
+            <strong class="kpi-value" id="revenueValue">—</strong>
+            <div class="kpi-delta positive" id="revenueDelta"></div>
         </div>
-
     </article>
 
-    <!-- Orders -->
-
     <article class="card kpi-card premium-card">
-
-        <div class="kpi-icon orders-icon">
-            📦
-        </div>
-
+        <div class="kpi-icon orders-icon">📦</div>
         <div class="kpi-content">
-
-            <span class="kpi-label">
-                الطلبات
-            </span>
-
-            <strong
-                class="kpi-value"
-                id="ordersValue">
-                —
-            </strong>
-
-            <div
-                class="kpi-delta"
-                id="ordersDelta">
-            </div>
-
+            <span class="kpi-label">الطلبات</span>
+            <strong class="kpi-value" id="ordersValue">—</strong>
+            <div class="kpi-delta" id="ordersDelta"></div>
         </div>
-
     </article>
 
-    <!-- Customers -->
-
     <article class="card kpi-card premium-card">
-
-        <div class="kpi-icon customers-icon">
-            👥
-        </div>
-
+        <div class="kpi-icon customers-icon">👥</div>
         <div class="kpi-content">
-
-            <span class="kpi-label">
-                العملاء
-            </span>
-
-            <strong
-                class="kpi-value"
-                id="customersValue">
-                —
-            </strong>
-
-            <div
-                class="kpi-delta"
-                id="customersDelta">
-            </div>
-
+            <span class="kpi-label">العملاء</span>
+            <strong class="kpi-value" id="customersValue">—</strong>
+            <div class="kpi-delta" id="customersDelta"></div>
         </div>
-
     </article>
 
-    <!-- Conversion -->
-
     <article class="card kpi-card premium-card">
-
-        <div class="kpi-icon conversion-icon">
-            📈
-        </div>
-
+        <div class="kpi-icon conversion-icon">📈</div>
         <div class="kpi-content">
-
-            <span class="kpi-label">
-                معدل التحويل
-            </span>
-
-            <strong
-                class="kpi-value"
-                id="conversionValue">
-                —
-            </strong>
-
-            <div
-                class="kpi-delta"
-                id="conversionDelta">
-            </div>
-
+            <span class="kpi-label">معدل التحويل</span>
+            <strong class="kpi-value" id="conversionValue">—</strong>
+            <div class="kpi-delta" id="conversionDelta"></div>
         </div>
-
     </article>
 
-    <!-- AI Performance -->
-
     <article class="card kpi-card premium-card">
-
-        <div class="kpi-icon ai-icon">
-            🤖
-        </div>
-
+        <div class="kpi-icon ai-icon">🤖</div>
         <div class="kpi-content">
-
-            <span class="kpi-label">
-                أداء الذكاء الاصطناعي
-            </span>
-
-            <strong
-                class="kpi-value"
-                id="aiPerformance">
-                98%
-            </strong>
-
-            <div class="kpi-delta positive">
-
-                Stable Performance
-
-            </div>
-
+            <span class="kpi-label">أداء الذكاء الاصطناعي</span>
+            <strong class="kpi-value" id="aiPerformance">98%</strong>
+            <div class="kpi-delta positive">Stable Performance</div>
         </div>
-
     </article>
 
-    <!-- Avg Order -->
-
     <article class="card kpi-card premium-card">
-
-        <div class="kpi-icon avg-icon">
-            🛒
-        </div>
-
+        <div class="kpi-icon avg-icon">🛒</div>
         <div class="kpi-content">
-
-            <span class="kpi-label">
-                متوسط قيمة الطلب
-            </span>
-
-            <strong
-                class="kpi-value"
-                id="averageOrderValue">
-                —
-            </strong>
-
-            <div class="kpi-delta">
-
-                محسوب تلقائياً
-
-            </div>
-
+            <span class="kpi-label">متوسط قيمة الطلب</span>
+            <strong class="kpi-value" id="averageOrderValue">—</strong>
+            <div class="kpi-delta">محسوب تلقائياً</div>
         </div>
-
     </article>
 
 </section>
-
-   <!-- ======================================= -->
-<!-- Analytics Section -->
-<!-- ======================================= -->
 
 <section class="analytics-grid">
-
-    <!-- Revenue Chart -->
-
     <article class="card analytics-card">
-
         <div class="analytics-header">
-
             <div>
-
-                <span class="analytics-badge">
-                    Revenue Analytics
-                </span>
-
-                <h2>
-                    الإيرادات
-                </h2>
-
-                <p>
-                    مقارنة الإيرادات خلال آخر 30 يوم.
-                </p>
-
+                <span class="analytics-badge">Revenue Analytics</span>
+                <h2>الإيرادات</h2>
+                <p>مقارنة الإيرادات خلال آخر 30 يوم.</p>
             </div>
-
-            <div class="analytics-total">
-
-                <strong id="revenueChartTotal">
-                    —
-                </strong>
-
-                <small>
-                    Total Revenue
-                </small>
-
-            </div>
-
+            <div class="analytics-total"><strong id="revenueChartTotal">—</strong><small>Total Revenue</small></div>
         </div>
-
-        <div class="chart-wrap dashboard-chart">
-
-            <canvas id="revenueChart"></canvas>
-
-        </div>
-
+        <div class="chart-wrap dashboard-chart"><canvas id="revenueChart"></canvas></div>
         <div id="revenueChartEmpty"></div>
-
     </article>
-
-
-    <!-- Orders Chart -->
 
     <article class="card analytics-card">
-
         <div class="analytics-header">
-
             <div>
-
-                <span class="analytics-badge blue">
-
-                    Orders Analytics
-
-                </span>
-
-                <h2>
-
-                    الطلبات
-
-                </h2>
-
-                <p>
-
-                    عدد الطلبات اليومية.
-
-                </p>
-
+                <span class="analytics-badge blue">Orders Analytics</span>
+                <h2>الطلبات</h2>
+                <p>عدد الطلبات اليومية.</p>
             </div>
-
-            <div class="analytics-total">
-
-                <strong id="ordersChartTotal">
-
-                    —
-
-                </strong>
-
-                <small>
-
-                    Total Orders
-
-                </small>
-
-            </div>
-
+            <div class="analytics-total"><strong id="ordersChartTotal">—</strong><small>Total Orders</small></div>
         </div>
-
-        <div class="chart-wrap dashboard-chart">
-
-            <canvas id="ordersChart"></canvas>
-
-        </div>
-
+        <div class="chart-wrap dashboard-chart"><canvas id="ordersChart"></canvas></div>
         <div id="ordersChartEmpty"></div>
-
     </article>
-
 </section>
-
-   <!-- ======================================= -->
-<!-- AI & Activity Dashboard -->
-<!-- ======================================= -->
 
 <section class="dashboard-grid-2 dashboard-bottom">
-
-    <!-- ========================= -->
-    <!-- AI Performance -->
-    <!-- ========================= -->
-
     <article class="card premium-card">
-
-        <div class="card-header">
-
-            <div>
-
-                <span class="section-badge success">
-                    AI PERFORMANCE
-                </span>
-
-                <h2>
-                    🤖 أداء الذكاء الاصطناعي
-                </h2>
-
-            </div>
-
-        </div>
-
+        <div class="card-header"><div><span class="section-badge success">AI PERFORMANCE</span><h2>🤖 أداء الذكاء الاصطناعي</h2></div></div>
         <div class="ai-stats">
-
-            <div class="ai-item">
-
-                <span>عدد الرسائل</span>
-
-                <strong id="aiMessages">
-                    —
-                </strong>
-
-            </div>
-
-            <div class="ai-item">
-
-                <span>تم الرد تلقائياً</span>
-
-                <strong id="aiReplies">
-                    —
-                </strong>
-
-            </div>
-
-            <div class="ai-item">
-
-                <span>نسبة النجاح</span>
-
-                <strong id="aiSuccess">
-                    98%
-                </strong>
-
-            </div>
-
-            <div class="ai-item">
-
-                <span>العملاء المحولين</span>
-
-                <strong id="aiConversions">
-                    —
-                </strong>
-
-            </div>
-
+            <div class="ai-item"><span>عدد الرسائل</span><strong id="aiMessages">—</strong></div>
+            <div class="ai-item"><span>تم الرد تلقائياً</span><strong id="aiReplies">—</strong></div>
+            <div class="ai-item"><span>نسبة النجاح</span><strong id="aiSuccess">98%</strong></div>
+            <div class="ai-item"><span>العملاء المحولين</span><strong id="aiConversions">—</strong></div>
         </div>
-
     </article>
-
-    <!-- ========================= -->
-    <!-- Conversation Sources -->
-    <!-- ========================= -->
 
     <article class="card premium-card">
-
-        <div class="card-header">
-
-            <div>
-
-                <span class="section-badge blue">
-                    SOURCES
-                </span>
-
-                <h2>
-                    📱 مصادر المحادثات
-                </h2>
-
-            </div>
-
-        </div>
-
+        <div class="card-header"><div><span class="section-badge blue">SOURCES</span><h2>📱 مصادر المحادثات</h2></div></div>
         <div class="source-list">
-
-            <div class="source-row">
-
-                <span>WhatsApp</span>
-
-                <div class="progress">
-                    <div class="progress-bar whatsapp" style="width:78%"></div>
-                </div>
-
-                <strong id="whatsappCount">
-                    —
-                </strong>
-
-            </div>
-
-            <div class="source-row">
-
-                <span>Facebook</span>
-
-                <div class="progress">
-                    <div class="progress-bar facebook" style="width:55%"></div>
-                </div>
-
-                <strong id="facebookCount">
-                    —
-                </strong>
-
-            </div>
-
-            <div class="source-row">
-
-                <span>Instagram</span>
-
-                <div class="progress">
-                    <div class="progress-bar instagram" style="width:36%"></div>
-                </div>
-
-                <strong id="instagramCount">
-                    —
-                </strong>
-
-            </div>
-
-            <div class="source-row">
-
-                <span>Website</span>
-
-                <div class="progress">
-                    <div class="progress-bar website" style="width:18%"></div>
-                </div>
-
-                <strong id="websiteCount">
-                    —
-                </strong>
-
-            </div>
-
+            <div class="source-row"><span>WhatsApp</span><div class="progress"><div class="progress-bar whatsapp" style="width:78%"></div></div><strong id="whatsappCount">—</strong></div>
+            <div class="source-row"><span>Facebook</span><div class="progress"><div class="progress-bar facebook" style="width:55%"></div></div><strong id="facebookCount">—</strong></div>
+            <div class="source-row"><span>Instagram</span><div class="progress"><div class="progress-bar instagram" style="width:36%"></div></div><strong id="instagramCount">—</strong></div>
+            <div class="source-row"><span>Website</span><div class="progress"><div class="progress-bar website" style="width:18%"></div></div><strong id="websiteCount">—</strong></div>
         </div>
-
     </article>
-
 </section>
-
-<!-- ======================================= -->
-<!-- Quick Actions -->
-<!-- ======================================= -->
 
 <section class="quick-actions">
-
-    <button class="action-btn" id="newOrderBtn">
-        ➕ إنشاء طلب جديد
-    </button>
-
-    <button class="action-btn" id="openChatsBtn">
-        💬 فتح المحادثات
-    </button>
-
-    <button class="action-btn" id="todayReportBtn">
-        📊 تقرير اليوم
-    </button>
-
-    <button class="action-btn" id="automationBtn">
-        ⚙ تشغيل Automation
-    </button>
-
+    <button class="action-btn" id="newOrderBtn">➕ إنشاء طلب جديد</button>
+    <button class="action-btn" id="openChatsBtn">💬 فتح المحادثات</button>
+    <button class="action-btn" id="todayReportBtn">📊 تقرير اليوم</button>
+    <button class="action-btn" id="automationBtn">⚙ تشغيل Automation</button>
 </section>
 
-    <!-- ========================================= -->
-<!-- Products & Orders -->
-<!-- ========================================= -->
-
 <section class="dashboard-grid-2">
-
-    <!-- ========================= -->
-    <!-- Top Products -->
-    <!-- ========================= -->
-
     <article class="card premium-table-card">
-
-        <div class="card-header">
-
-            <div>
-
-                <span class="section-badge">
-                    Best Sellers
-                </span>
-
-                <h2>
-
-                    🔥 أفضل المنتجات
-
-                </h2>
-
-            </div>
-
-            <button class="view-all-btn">
-
-                عرض الكل →
-
-            </button>
-
-        </div>
-
-        <div id="topProducts" class="premium-list">
-
-            <!-- Dashboard JS -->
-
-        </div>
-
+        <div class="card-header"><div><span class="section-badge">Best Sellers</span><h2>🔥 أفضل المنتجات</h2></div><button class="view-all-btn">عرض الكل →</button></div>
+        <div id="topProducts" class="premium-list"></div>
     </article>
 
-    <!-- ========================= -->
-    <!-- Recent Orders -->
-    <!-- ========================= -->
-
     <article class="card premium-table-card">
-
-        <div class="card-header">
-
-            <div>
-
-                <span class="section-badge blue">
-
-                    Latest Orders
-
-                </span>
-
-                <h2>
-
-                    🛍 آخر الطلبات
-
-                </h2>
-
-            </div>
-
-            <button class="view-all-btn">
-
-                عرض الكل →
-
-            </button>
-
-        </div>
-
-        <div id="recentOrders" class="premium-list">
-
-            <!-- Dashboard JS -->
-
-        </div>
-
+        <div class="card-header"><div><span class="section-badge blue">Latest Orders</span><h2>🛍 آخر الطلبات</h2></div><button class="view-all-btn">عرض الكل →</button></div>
+        <div id="recentOrders" class="premium-list"></div>
     </article>
-
 </section>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script><script src="assets/lib/supabase-client.js"></script><script src="assets/lib/realtime.js"></script><script src="assets/lib/store.js"></script><script src="assets/lib/format.js"></script><script src="assets/lib/daterange.js"></script><script src="assets/services/auth-service.js"></script><script src="assets/services/customers-service.js"></script><script src="assets/services/orders-service.js"></script><script src="assets/services/conversations-service.js"></script><script src="assets/services/messages-service.js"></script><script src="assets/services/campaigns-service.js"></script><script src="assets/hooks/use-auth.js"></script><script src="assets/hooks/use-async.js"></script><script src="assets/js/layout.js"></script><script src="assets/js/dashboard.js"></script>
