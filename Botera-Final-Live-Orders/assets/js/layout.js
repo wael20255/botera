@@ -3,13 +3,12 @@
 // lib/format.js now; auth/session logic lives in services/hooks.
 // ============================================================================
 function setupLayout(profile) {
+  window.__boteraLiveProfile = profile;
   const current = document.body.dataset.page;
   document.querySelectorAll(".nav-item").forEach((el) => {
     if (el.dataset.page === current) el.classList.add("active");
   });
 
-  // Remove nav links the current user has no permission to see —
-  // removed from the DOM entirely, not just hidden with CSS.
   document.querySelectorAll("[data-requires]").forEach((el) => {
     const permission = el.dataset.requires;
     if (!profile.is_platform_owner && !profile[permission]) el.remove();
@@ -17,7 +16,6 @@ function setupLayout(profile) {
 
   document.getElementById("pageTitle").textContent = document.body.dataset.title || "Botera";
 
-  // Real authenticated company + owner — replaces any placeholder identity.
   const company = profile.company || {};
   const avatarEl = document.getElementById("workspaceAvatar");
   if (avatarEl) {
@@ -38,4 +36,15 @@ function setupLayout(profile) {
     AuthStore.clear();
     window.location.href = "login.html";
   });
+
+  // Load the additive live fixes once on every authenticated page. It is
+  // deliberately loaded after the page script has created its DOM so it can
+  // enhance existing modals/forms without replacing the existing UI.
+  if (!document.querySelector('script[data-botera-live-fixes]')) {
+    const script = document.createElement("script");
+    script.src = "assets/js/live-fixes.js";
+    script.dataset.boteraLiveFixes = "1";
+    script.defer = true;
+    document.head.appendChild(script);
+  }
 }
