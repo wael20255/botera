@@ -1,3 +1,4 @@
+/* BOTERA_ORDER_EDITOR_BUILD=orders-editor-live-20260817 */
 (async function initOrderEditor() {
   const profile = window.__boteraLiveProfile || window.AuthStore?.get?.().profile || await useAuth.ensureAuthenticated({ requiredPermission: "can_view_orders" });
   if (!profile || !window.supabaseClient || !window.OrdersService) return;
@@ -217,85 +218,21 @@
     const customer = customers.find((c) => String(c.id) === String(order?.customer_id || ""));
     const items = Array.isArray(order?.order_items) && order.order_items.length ? order.order_items : [{ product_id: "", quantity: 1 }];
     const currency = order?.currency || profile.company?.currency || "EGP";
-    modal.innerHTML = `<div class="oe-wrap">
-      <div class="oe-header"><div><h2 class="oe-title">${order ? "تعديل الأوردر" : "إضافة أوردر جديد"}</h2><div class="oe-subtitle">تعديل العميل والمنتجات والحالة والتكاليف في قاعدة البيانات في عملية واحدة.</div></div><button type="button" class="btn-secondary" data-close-editor>إغلاق</button></div>
-      <form id="oeOrderForm">
-        <div class="oe-grid">
-          <div class="oe-section">
-            <div class="oe-section-title">بيانات العميل</div>
-            <div class="oe-form-grid">
-              <div class="form-field"><label class="form-label">العميل</label><select class="form-input" id="oeCustomer"><option value="">عميل جديد</option>${makeOptions(customers, "id", (c) => `${c.name || "بدون اسم"}${c.phone ? ` — ${c.phone}` : ""}`, order?.customer_id)}</select></div>
-              <div class="form-field"><label class="form-label">اسم العميل</label><input class="form-input" id="oeCustomerName" required value="${esc(customer?.name || order?.customer_order_name || "")}"></div>
-              <div class="form-field"><label class="form-label">رقم الهاتف</label><input class="form-input" id="oeCustomerPhone" value="${esc(customer?.phone || "")}"></div>
-              <div class="form-field"><label class="form-label">البريد الإلكتروني</label><input class="form-input" id="oeCustomerEmail" value="${esc(customer?.email || "")}"></div>
-              <div class="form-field"><label class="form-label">الدولة</label><input class="form-input" id="oeCustomerCountry" value="${esc(customer?.country || "مصر")}"></div>
-              <div class="form-field"><label class="form-label">المدينة</label><input class="form-input" id="oeCustomerCity" value="${esc(customer?.city || "")}"></div>
-              <div class="form-field" style="grid-column:1/-1"><label class="form-label">العنوان</label><input class="form-input" id="oeCustomerAddress" value="${esc(customer?.address || "")}"></div>
-              <div class="form-field" style="grid-column:1/-1"><label class="form-label">ملاحظات العميل</label><textarea class="form-input" id="oeCustomerNotes" rows="2">${esc(customer?.notes || "")}</textarea></div>
-            </div>
-          </div>
-
-          <div class="oe-section">
-            <div class="oe-section-title">بيانات الأوردر</div>
-            <div class="oe-form-grid">
-              <div class="form-field"><label class="form-label">كود الأوردر</label><input class="form-input" id="oeOrderNumber" value="${esc(order?.order_number || "")}" placeholder="يتم توليده تلقائيًا إذا تركته فارغًا"></div>
-              <div class="form-field"><label class="form-label">تاريخ الأوردر</label><input class="form-input" id="oeCreatedAt" type="datetime-local" value="${localDateTime(order?.created_at)}"></div>
-              <div class="form-field"><label class="form-label">حالة الأوردر</label><select class="form-input" id="oeStatus">${Object.entries(statusLabels).map(([key,label]) => `<option value="${key}" ${key === (order?.status || "pending") ? "selected" : ""}>${label}</option>`).join("")}</select></div>
-              <div class="form-field"><label class="form-label">حالة الدفع</label><select class="form-input" id="oePaymentStatus">${Object.entries(paymentLabels).map(([key,label]) => `<option value="${key}" ${key === (order?.payment_status || "pending") ? "selected" : ""}>${label}</option>`).join("")}</select></div>
-              <div class="form-field"><label class="form-label">حالة الشحن</label><select class="form-input" id="oeShippingStatus">${Object.entries(shippingLabels).map(([key,label]) => `<option value="${key}" ${key === (order?.shipping_status || "pending") ? "selected" : ""}>${label}</option>`).join("")}</select></div>
-              <div class="form-field"><label class="form-label">العملة</label><input class="form-input" id="oeCurrency" value="${esc(currency)}"></div>
-              <div class="form-field"><label class="form-label">تكلفة الشحن</label><input class="form-input" id="oeShippingCost" type="number" min="0" step="0.01" value="${Number(order?.shipping_cost || 0)}"></div>
-              <div class="form-field"><label class="form-label">الخصم</label><input class="form-input" id="oeDiscount" type="number" min="0" step="0.01" value="${Number(order?.discount || 0)}"></div>
-              <div class="form-field"><label class="form-label">تكلفة المرتجع</label><input class="form-input" id="oeReturnCost" type="number" min="0" step="0.01" value="${Number(order?.return_shipping_cost || 0)}"></div>
-              <div class="form-field" style="grid-column:1/-1"><label class="form-label">ملاحظات الأوردر</label><textarea class="form-input" id="oeOrderNotes" rows="2">${esc(order?.notes || "")}</textarea></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="oe-section" style="margin-top:18px">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div class="oe-section-title" style="margin:0">المنتجات</div><button type="button" class="btn-secondary" data-add-item>+ إضافة منتج</button></div>
-          <div data-items-list>${items.map(renderItemRow).join("")}</div>
-          <div class="oe-summary">
-            <div class="oe-summary-row"><span>الإجمالي الفرعي</span><strong data-preview-subtotal>${money(order?.subtotal || 0,currency)}</strong></div>
-            <div class="oe-summary-row"><span>الشحن</span><strong data-preview-shipping>${money(order?.shipping_cost || 0,currency)}</strong></div>
-            <div class="oe-summary-row"><span>الخصم</span><strong data-preview-discount>${money(order?.discount || 0,currency)}</strong></div>
-            <div class="oe-summary-row total"><span>الإجمالي</span><strong data-preview-total>${money(order?.total || 0,currency)}</strong></div>
-            <div class="oe-item-meta" data-charge-note></div>
-          </div>
-        </div>
-
-        <div class="oe-section" style="margin-top:18px">
-          <div class="oe-section-title">بيانات المصدر</div>
-          <div class="oe-form-grid">
-            <div class="form-field"><label class="form-label">اسم العميل في الأوردر</label><input class="form-input" id="oeCustomerOrderName" value="${esc(order?.customer_order_name || "")}"></div>
-            <div class="form-field"><label class="form-label">اسم حساب Facebook</label><input class="form-input" id="oeCustomerAccountName" value="${esc(order?.customer_account_name || "")}"></div>
-            <div class="form-field"><label class="form-label">اسم الصفحة</label><input class="form-input" id="oeSourcePageName" value="${esc(order?.source_page_name || "")}"></div>
-            <div class="form-field"><label class="form-label">Page ID</label><input class="form-input" id="oeSourcePageId" value="${esc(order?.source_page_id || "")}"></div>
-            <div class="form-field"><label class="form-label">Source Message ID</label><input class="form-input" id="oeSourceMessageId" value="${esc(order?.source_message_id || "")}"></div>
-            <div class="form-field"><label class="form-label">Conversation ID</label><input class="form-input" id="oeConversationId" value="${esc(order?.conversation_id || "")}"></div>
-          </div>
-        </div>
-
-        <div class="oe-error" id="oeError"></div>
-        <div class="oe-actions"><button type="button" class="btn-secondary" data-close-editor>إلغاء</button><button type="submit" class="btn" id="oeSave">${order ? "حفظ التعديلات" : "إضافة الأوردر"}</button></div>
-      </form>
-    </div>`;
-
-    modal.querySelectorAll("[data-close-editor]").forEach((button) => button.addEventListener("click", () => modal.close()));
+    modal.innerHTML = `<div class="oe-wrap"><div class="oe-header"><div><h2 class="oe-title">${order ? "تعديل الأوردر" : "إضافة أوردر جديد"}</h2><div class="oe-subtitle">تعديل العميل والمنتجات والحالة والتكاليف في قاعدة البيانات في عملية واحدة.</div></div><button type="button" class="btn-secondary" data-close-editor>إغلاق</button></div><form id="oeOrderForm"><div class="oe-grid"><div class="oe-section"><div class="oe-section-title">بيانات العميل</div><div class="oe-form-grid"><div class="form-field"><label class="form-label">العميل</label><select class="form-input" id="oeCustomer"><option value="">عميل جديد</option>${makeOptions(customers, "id", (c) => `${c.name || "بدون اسم"}${c.phone ? ` — ${c.phone}` : ""}`, order?.customer_id)}</select></div><div class="form-field"><label class="form-label">الاسم</label><input class="form-input" id="oeCustomerName" value="${esc(customer?.name || order?.customer_order_name || "")}"></div><div class="form-field"><label class="form-label">الهاتف</label><input class="form-input" id="oeCustomerPhone" value="${esc(customer?.phone || "")}"></div><div class="form-field"><label class="form-label">البريد</label><input class="form-input" id="oeCustomerEmail" value="${esc(customer?.email || "")}"></div><div class="form-field"><label class="form-label">الدولة</label><input class="form-input" id="oeCustomerCountry" value="${esc(customer?.country || "")}"></div><div class="form-field"><label class="form-label">المدينة</label><input class="form-input" id="oeCustomerCity" value="${esc(customer?.city || "")}"></div><div class="form-field"><label class="form-label">العنوان</label><input class="form-input" id="oeCustomerAddress" value="${esc(customer?.address || "")}"></div><div class="form-field"><label class="form-label">ملاحظات العميل</label><input class="form-input" id="oeCustomerNotes" value="${esc(customer?.notes || "")}"></div></div></div><div class="oe-section"><div class="oe-section-title">بيانات الأوردر</div><div class="oe-form-grid"><div class="form-field"><label class="form-label">رقم الأوردر</label><input class="form-input" id="oeOrderNumber" value="${esc(order?.order_number || "")}"></div><div class="form-field"><label class="form-label">التاريخ</label><input class="form-input" type="datetime-local" id="oeCreatedAt" value="${localDateTime(order?.created_at)}"></div><div class="form-field"><label class="form-label">الحالة</label><select class="form-input" id="oeStatus">${makeOptions(Object.keys(statusLabels).map((id)=>({id,label:statusLabels[id]})), "id", (x)=>x.label, order?.status || "pending")}</select></div><div class="form-field"><label class="form-label">حالة الدفع</label><select class="form-input" id="oePaymentStatus">${makeOptions(Object.keys(paymentLabels).map((id)=>({id,label:paymentLabels[id]})), "id", (x)=>x.label, order?.payment_status || "pending")}</select></div><div class="form-field"><label class="form-label">حالة الشحن</label><select class="form-input" id="oeShippingStatus">${makeOptions(Object.keys(shippingLabels).map((id)=>({id,label:shippingLabels[id]})), "id", (x)=>x.label, order?.shipping_status || "pending")}</select></div><div class="form-field"><label class="form-label">العملة</label><input class="form-input" id="oeCurrency" value="${esc(currency)}"></div><div class="form-field"><label class="form-label">الشحن</label><input class="form-input" type="number" id="oeShippingCost" value="${Number(order?.shipping_cost || 0)}"></div><div class="form-field"><label class="form-label">الخصم</label><input class="form-input" type="number" id="oeDiscount" value="${Number(order?.discount || 0)}"></div><div class="form-field"><label class="form-label">تكلفة المرتجع</label><input class="form-input" type="number" id="oeReturnCost" value="${Number(order?.return_shipping_cost || 0)}"></div><div class="form-field"><label class="form-label">ملاحظات الأوردر</label><input class="form-input" id="oeOrderNotes" value="${esc(order?.notes || "")}"></div><div class="form-field"><label class="form-label">اسم العميل في الأوردر</label><input class="form-input" id="oeCustomerOrderName" value="${esc(order?.customer_order_name || "")}"></div><div class="form-field"><label class="form-label">اسم الحساب</label><input class="form-input" id="oeCustomerAccountName" value="${esc(order?.customer_account_name || "")}"></div><div class="form-field"><label class="form-label">اسم الصفحة</label><input class="form-input" id="oeSourcePageName" value="${esc(order?.source_page_name || "")}"></div><div class="form-field"><label class="form-label">Page ID</label><input class="form-input" id="oeSourcePageId" value="${esc(order?.source_page_id || "")}"></div><div class="form-field"><label class="form-label">Message ID</label><input class="form-input" id="oeSourceMessageId" value="${esc(order?.source_message_id || "")}"></div><div class="form-field"><label class="form-label">Conversation ID</label><input class="form-input" id="oeConversationId" value="${esc(order?.conversation_id || "")}"></div></div></div></div><div class="oe-section" style="margin-top:18px"><div class="oe-section-title">المنتجات</div><div data-items-list>${items.map(renderItemRow).join("")}</div><div class="oe-actions"><button type="button" class="btn-secondary" data-add-item>إضافة منتج</button></div><div class="oe-summary"><div class="oe-summary-row"><span>الإجمالي الفرعي</span><strong data-preview-subtotal>${money(0,currency)}</strong></div><div class="oe-summary-row"><span>الشحن</span><strong data-preview-shipping>${money(0,currency)}</strong></div><div class="oe-summary-row"><span>الخصم</span><strong data-preview-discount>${money(0,currency)}</strong></div><div class="oe-summary-row total"><span>الإجمالي</span><strong data-preview-total>${money(0,currency)}</strong></div><div class="oe-item-meta" data-charge-note></div></div></div><div class="oe-error" id="oeError"></div><div class="oe-actions"><button type="button" class="btn-secondary" data-close-editor>إلغاء</button><button type="submit" class="btn" id="oeSave">${order ? "حفظ التعديلات" : "إضافة الأوردر"}</button></div></form></div>`;
+    modal.querySelectorAll("[data-close-editor]").forEach((button)=>button.addEventListener("click",()=>modal.close()));
     bindForm();
     recalcPreview();
-    modal.showModal();
   }
 
   async function loadEditorData() {
     const [customersResult, productsResult, shippingResult] = await Promise.all([
-      supabaseClient.from("customers").select("id,name,phone,email,country,city,address,notes").eq("company_id", companyId).order("name", { ascending: true }),
+      supabaseClient.from("customers").select("id,name,phone,email,country,city,address,notes").eq("company_id", companyId).order("created_at", { ascending: false }),
       supabaseClient.from("products").select("id,name,sku,price,cost,status").eq("company_id", companyId).order("created_at", { ascending: false }),
       supabaseClient.from("shipping_settings").select("charge_to_customer").eq("company_id", companyId).maybeSingle(),
     ]);
     if (customersResult.error) throw customersResult.error;
     if (productsResult.error) throw productsResult.error;
-    if (shippingResult.error) throw shippingResult.error;
+    if (shippingResult.error && shippingResult.error.code !== "PGRST116") throw shippingResult.error;
     customers = customersResult.data || [];
     products = productsResult.data || [];
     chargeToCustomer = !!shippingResult.data?.charge_to_customer;
