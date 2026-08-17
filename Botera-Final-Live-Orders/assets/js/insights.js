@@ -12,16 +12,11 @@
   const growthArea = document.getElementById("growthChartArea");
   const adsReportArea = document.getElementById("adsReportArea");
 
-  // Numbers on this page are shown in Western/English digits — a
-  // page-scoped formatter, kept local to this file only, so the rest of
-  // the app (which uses formatMoney()'s Arabic-Indic digits everywhere
-  // else) is completely unaffected.
+  // Numbers on this page are shown in Western/English digits.
   function formatMoneyEn(amount, currency = "EGP") {
     return `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(Number(amount || 0))} ${currency}`;
   }
 
-  // The 8 boxes requested, in order — Revenue leads since Profit/AOV/Avg
-  // Order Cost are all derived from it.
   const METRICS = [
     { key: "revenue", label: "الإيراد", money: true },
     { key: "adSpend", label: "صرف الإعلانات", money: true },
@@ -39,7 +34,6 @@
     const up = change >= 0;
     return `<span class="${up ? "kpi-delta-up" : "kpi-delta-down"}">${up ? "▲" : "▼"} ${Math.abs(change).toFixed(1)}%</span><span class="kpi-delta-muted">مقابل الفترة السابقة</span>`;
   }
-
 
   function renderAdsReport(campaigns, manualExpenses, currency) {
     if (!adsReportArea) return;
@@ -69,9 +63,6 @@
     }).join("");
   }
 
-  // One big chart at the bottom summarizing overall project growth: real
-  // Revenue (all valid orders) and real net Profit (delivered orders only,
-  // see load() below), plotted together across the selected period.
   function renderGrowthChart(buckets, revenueSeries, profitSeries, currency) {
     if (growthChart) { growthChart.destroy(); growthChart = null; }
     const total = revenueSeries.reduce((s, v) => s + v, 0);
@@ -120,22 +111,18 @@
         allAdExpenses = adResult.data || [];
         loaded = true;
       }
+
       const range = DateRange.getCurrent();
       const buckets = DateRange.buckets(range);
       const orders = allOrders.filter((o) => DateRange.within(o.created_at, range));
       const prevOrders = allOrders.filter((o) => DateRange.within(o.created_at, range.previous));
-      // Revenue/AOV/Cost box figures exclude cancelled & refunded orders —
-      // same convention the Dashboard's Company Growth / Profit Trend use.
       const validOrders = orders.filter((o) => !["cancelled", "refunded"].includes(o.status));
       const prevValidOrders = prevOrders.filter((o) => !["cancelled", "refunded"].includes(o.status));
-      // Profit specifically uses DELIVERED orders only — "صافي الربح بعد
-      // التسليم": an order that's merely confirmed/pending hasn't actually
-      // banked real, certain revenue yet, so it shouldn't count as profit
-      // until it's actually delivered.
       const deliveredOrders = orders.filter((o) => o.status === "delivered");
       const prevDeliveredOrders = prevOrders.filter((o) => o.status === "delivered");
       const campaigns = allCampaigns.filter((c) => DateRange.within(c.created_at, range));
       const prevCampaigns = allCampaigns.filter((c) => DateRange.within(c.created_at, range.previous));
+      const adExpenses = allAdExpenses.filter((e) => DateRange.within(e.expense_date, range));
       const prevAdExpenses = allAdExpenses.filter((e) => DateRange.within(e.expense_date, range.previous));
       const currency = validOrders[0]?.currency || allOrders[0]?.currency || "EGP";
 
@@ -150,32 +137,34 @@
       const campaignSpend = (list) => list.reduce((s, c) => s + (Number(c.spend) || 0), 0);
       const manualSpend = (list) => list.reduce((s, e) => s + (Number(e.amount) || 0), 0);
       const adsForPeriod = (campaignList, manualList) => campaignSpend(campaignList) + manualSpend(manualList);
-      // Cost box = product cost + shipping + both automatic campaign spend and manual ad spend.
-      const costOf = (validList, campaignList, manualList) => productCosts(validList) + sum(validList, "shipping_cost") + adsForPeriod(campaignList, manualList);
-      const totalCostOf = (allList, campaignList, manualList) => productCosts(allList) + sum(allList, "shipping_cost") + adsForPeriod(campaignList, manualList);
+
+      // Base order cost = product cost + outbound shipping.
+      const baseOrderCost = (orderList) => productCosts(orderList) + sum(orderList, "shipping_cost");
+      // Total cost keeps the existing per-order calculation and adds the
+      // advertising spend for the selected period on top.
+      const totalCostOf = (orderList, adSpendForPeriod) => baseOrderCost(orderList) + adSpendForPeriod;
       const netProfitOf = (deliveredList, campaignList, manualList) => sum(deliveredList, "total") - productCosts(deliveredList) - sum(deliveredList, "shipping_cost") - adsForPeriod(campaignList, manualList);
 
       const revenue = sum(validOrders, "total"), prevRevenue = sum(prevValidOrders, "total");
-      const adSpend = adsForPeriod(campaigns, allAdExpenses), prevAdSpend = adsForPeriod(prevCampaigns, prevAdExpenses);
-      const cost = costOf(validOrders, campaigns, allAdExpenses), prevCost = costOf(prevValidOrders, prevCampaigns, prevAdExpenses);
-      const profit = netProfitOf(deliveredOrders, campaigns, allAdExpenses), prevProfit = netProfitOf(prevDeliveredOrders, prevCampaigns, prevAdExpenses);
-      // Order/delivery counts use ALL orders (not just "valid" ones) — a
-      // raw activity count, same number shown on the Orders page itself.
+      const adSpend = adsForPeriod(campaigns, adExpenses), prevAdSpend = adsForPeriod(prevCampaigns, prevAdExpenses);
+      const cost = baseOrderCost(validOrders) + adSpend;
+      const prevCost = baseOrderCost(prevValidOrders) + prevAdSpend;
+      const profit = netProfitOf(deliveredOrders, campaigns, adExpenses), prevProfit = netProfitOf(prevDeliveredOrders, prevCampaigns, prevAdExpenses);
+
       const orderCount = orders.length, prevOrderCount = prevOrders.length;
       const deliveries = deliveredOrders.length, prevDeliveries = prevDeliveredOrders.length;
       const aov = validOrders.length ? revenue / validOrders.length : 0;
       const prevAov = prevValidOrders.length ? prevRevenue / prevValidOrders.length : 0;
-      // Total cost across EVERY order (including cancelled/refunded) ÷
-      // EVERY order — "the one order in front of me costs me how much,
-      // on average, across everything the project actually pays".
-      const orderCost = orderCount ? totalCostOf(orders, campaigns, allAdExpenses) / orderCount : 0;
-      const prevOrderCost = prevOrderCount ? totalCostOf(prevOrders, prevCampaigns, prevAdExpenses) / prevOrderCount : 0;
 
-      // Same figures, bucketed across the period, for the big growth chart.
+      // Cost per order = product cost + shipping cost, then add the selected
+      // period's advertising spend distributed across the selected orders.
+      const orderCost = orderCount ? totalCostOf(orders, adSpend) / orderCount : 0;
+      const prevOrderCost = prevOrderCount ? totalCostOf(prevOrders, prevAdSpend) / prevOrderCount : 0;
+
       const bucketValid = (b) => validOrders.filter((o) => DateRange.within(o.created_at, b));
       const bucketDelivered = (b) => deliveredOrders.filter((o) => DateRange.within(o.created_at, b));
       const bucketCampaigns = (b) => campaigns.filter((c) => DateRange.within(c.created_at, b));
-      const bucketAds = (b) => allAdExpenses.filter((e) => DateRange.within(e.expense_date, b));
+      const bucketAds = (b) => adExpenses.filter((e) => DateRange.within(e.expense_date, b));
       const revenueSeries = buckets.map((b) => sum(bucketValid(b), "total"));
       const profitSeries = buckets.map((b) => netProfitOf(bucketDelivered(b), bucketCampaigns(b), bucketAds(b)));
 
@@ -185,7 +174,7 @@
         prev: { revenue: prevRevenue, adSpend: prevAdSpend, orders: prevOrderCount, deliveries: prevDeliveries, cost: prevCost, profit: prevProfit, aov: prevAov, orderCost: prevOrderCost },
       });
       renderGrowthChart(buckets, revenueSeries, profitSeries, currency);
-      renderAdsReport(campaigns, allAdExpenses, currency);
+      renderAdsReport(campaigns, adExpenses, currency);
     } catch (error) {
       console.error("Reports page failed to load:", error);
       metricsEl.innerHTML = errorState("تعذر تحميل التقارير", isSupabaseConfigured() ? "تحقق من اتصالك بالإنترنت وحاول مرة أخرى." : "لسه معملتش ربط مشروع Supabase — راجع assets/lib/supabase-client.js.");
