@@ -37,13 +37,20 @@ function setupLayout(profile) {
     window.location.href = "login.html";
   });
 
-  // Load additive live fixes once on every authenticated page.
-  const fixes = [
-    ["data-botera-live-fixes", "assets/js/live-fixes.js"],
-    ["data-botera-order-detail-fix", "assets/js/order-detail-fix.js"],
-    ["data-botera-report-cost-fix", "assets/js/report-cost-fix.js"],
-    ["data-botera-order-list-fix", "assets/js/order-list-fix.js"],
-  ];
+  // Insights has one authoritative reports engine in insights.js.
+  // Do not load the legacy live/report overrides there because they
+  // recalculate and overwrite the authoritative metrics after render.
+  const fixes = current === "insights"
+    ? [
+        ["data-botera-order-detail-fix", "assets/js/order-detail-fix.js"],
+        ["data-botera-order-list-fix", "assets/js/order-list-fix.js"],
+      ]
+    : [
+        ["data-botera-live-fixes", "assets/js/live-fixes.js"],
+        ["data-botera-order-detail-fix", "assets/js/order-detail-fix.js"],
+        ["data-botera-order-list-fix", "assets/js/order-list-fix.js"],
+      ];
+
   fixes.forEach(([marker, src]) => {
     if (document.querySelector(`script[${marker}]`)) return;
     const script = document.createElement("script");
