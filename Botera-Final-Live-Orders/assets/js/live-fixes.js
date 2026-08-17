@@ -25,7 +25,6 @@
   }
   async function socialNames(){const p=profile();if(!p)return;const q=await supabaseClient.from('customers').select('id').eq('company_id',p.company_id).in('source',['facebook','instagram']).in('name',['Facebook Customer','Instagram Customer','عميل غير معروف']).limit(50);for(const x of q.data||[]){try{await supabaseClient.functions.invoke('sync-social-profile',{body:{customer_id:x.id}})}catch(_){}}}
   document.addEventListener('click',e=>{if(e.target.closest('[data-order-id]'))setTimeout(orderDetails,60);if(e.target.closest('[data-quick-status="refunded"],[data-update-status="refunded"]'))setTimeout(async()=>{const p=profile(),n=document.querySelector('#orderDetails .section-title')?.textContent?.trim();if(!p||!n)return;const s=(await supabaseClient.from('shipping_settings').select('return_cost').eq('company_id',p.company_id).maybeSingle()).data;const v=Number(s?.return_cost||0);if(v)await supabaseClient.from('orders').update({return_shipping_cost:v}).eq('company_id',p.company_id).eq('order_number',n).eq('return_shipping_cost',0)},500)});
-  window.addEventListener('boteradaterangechange',()=>setTimeout(()=>window.location.reload(),50));
   window.addEventListener('boterarealtimechange',()=>setTimeout(()=>{adControls();orderDetails();socialNames()},250));
   setTimeout(()=>{returnCost();adControls();orderDetails();socialNames()},1000);
 })();
