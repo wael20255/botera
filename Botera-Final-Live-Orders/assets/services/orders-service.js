@@ -1,5 +1,4 @@
-// services/orders-service — order reads, status updates, and the transactional
-// order editor write path backed by public.save_order_with_items().
+// services/orders-service — order reads, status updates, and UI editor writes.
 const OrdersService = (function () {
   async function list(companyId) {
     const { data, error } = await supabaseClient
@@ -26,18 +25,38 @@ const OrdersService = (function () {
   }
 
   async function saveEditor(payload) {
-    const { data, error } = await supabaseClient.rpc("save_order_with_items", {
-      p_company_id: payload.companyId,
-      p_order_id: payload.orderId || null,
-      p_customer_id: payload.customerId || null,
-      p_customer: payload.customer || {},
-      p_order: payload.order || {},
-      p_items: payload.items || [],
-    });
+    const orderData = {
+      ...payload.order,
+      customer_id: payload.customerId || "",
+      name: payload.customer?.name || "",
+      phone: payload.customer?.phone || "",
+      email: payload.customer?.email || "",
+      country: payload.customer?.country || "",
+      city: payload.customer?.city || "",
+      address: payload.customer?.address || "",
+      notes: payload.customer?.notes || "",
+      items: payload.items || [],
+    };
+
+    const rpcName = payload.orderId ? "update_order_from_ui" : "create_order_from_ui";
+    const rpcArgs = payload.orderId
+      ? { p_order_id: payload.orderId, p_patch: orderData }
+      : { p_order: orderData };
+
+    const { data, error } = await supabaseClient.rpc(rpcName, rpcArgs);
     if (error) throw error;
-    if (!data) throw new Error("تعذر حفظ الأوردر.");
+    if (!data?.ok) throw new Error("تعذر حفظ الأوردر.");
     return data;
   }
 
-  return { list, updateStatus, saveEditor };
+  async function deleteOrder(orderId) {
+    const { data, error } = await supabaseClient.rpc("delete_order_from_ui", {
+      p_order_id: orderId,
+    });
+    if (error) throw error;
+    if (!data?.ok) throw new Error("تعذر حذف الأوردر.");
+    return data;
+  }
+
+  return { list, updateStatus, saveEditor, deleteOrder };
 })();
