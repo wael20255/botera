@@ -15,6 +15,7 @@ permissions:
 
 env:
   PRODUCTION_URL: https://botera.botera.workers.dev
+  WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-output.ndjson
 
 jobs:
   deploy:
@@ -24,7 +25,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy to Cloudflare Workers
+      - name: Deploy version to Cloudflare
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -32,18 +33,36 @@ jobs:
           wranglerVersion: "4.123.0"
           command: deploy
 
-      - name: Verify production serves this commit
+      - name: Promote uploaded version to production
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$WRANGLER_OUTPUT_FILE_PATH"
+          VERSION_ID="$(node -e '
+            const fs=require("fs");
+            const lines=fs.readFileSync(process.env.WRANGLER_OUTPUT_FILE_PATH,"utf8").trim().split(/\r?\n/).filter(Boolean);
+            const records=lines.map(line=>{try{return JSON.parse(line)}catch{return null}}).filter(Boolean);
+            const deploy=records.reverse().find(r=>r.type==="deploy" && r.version_id);
+            if(!deploy) process.exit(2);
+            process.stdout.write(deploy.version_id);
+          ')"
+          echo "Uploaded version: ${VERSION_ID}"
+          npx wrangler versions deploy "${VERSION_ID}" -y
+          npx wrangler deployments list --name botera --json
+
+      - name: Verify production serves the deployed version
         shell: bash
         run: |
           set -euo pipefail
           expected='BOTERA_PRODUCTION_BUILD=c61c3b7'
           for attempt in {1..12}; do
             echo "Production verification attempt ${attempt}/12"
-            if curl -fsSL --retry 2 --retry-delay 1 "${PRODUCTION_URL}/orders.html?verify=${GITHUB_SHA}" | grep -Fq "${expected}"; then
-              echo "Production is serving commit ${GITHUB_SHA}."
+            response="$(curl -fsSL --retry 2 --retry-delay 1 "${PRODUCTION_URL}/orders.html?verify=${GITHUB_SHA}" || true)"
+            if printf '%s' "$response" | grep -Fq "$expected"; then
+              echo "Production is serving the deployed Orders build."
               exit 0
             fi
             sleep 5
           done
-          echo "Production did not serve the expected build marker."
+          echo "Production did not serve the deployed build marker."
           exit 1
