@@ -1,3 +1,4 @@
+// BOTERA_META_ADS_LIVE_BUILD=20260818-1148
 // Live Meta Ads spend sync. Runs independently of page-specific realtime wiring.
 (function () {
   if (window.__boteraMetaAdsLiveSyncStarted) return;
