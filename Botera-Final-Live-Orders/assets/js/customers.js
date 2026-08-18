@@ -9,6 +9,7 @@
   let customers = [];
   let activeStage = "all";
   let customerIdsWithOrders = new Set();
+  let latestOrderStatusByCustomer = {};
   let customerChannels = {}; // customerId -> channel, derived from their conversations (customers themselves don't store a channel)
   const stages = ["new", "recommend", "asking", "hesitant", "ready", "collect", "closed", "lost"];
   const labels = { all: "الكل", new: "جديد", recommend: "بيتوصف له", asking: "يسأل", hesitant: "متردد", ready: "جاهز", collect: "بيجمع بياناته", closed: "مغلق", lost: "مفقود" };
@@ -69,14 +70,16 @@
     filters.innerHTML = ["all", ...stages].map((stage) => `<button class="filter-button ${activeStage === stage ? "active" : ""}" data-stage="${stage}">${labels[stage]} (${stage === "all" ? base.length : base.filter((customer) => customer.stage === stage).length})</button>`).join("");
     filters.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => { activeStage = button.dataset.stage; render(); }));
     const visible = base.filter((customer) => activeStage === "all" || customer.stage === activeStage);
-    table.innerHTML = visible.length ? `<table class="data-table customers-table"><thead><tr><th></th><th>الاسم</th><th>جاي منين</th><th>المرحلة</th><th>تاريخ الإضافة</th></tr></thead><tbody>${visible.map((customer) => {
+    table.innerHTML = visible.length ? `<table class="data-table customers-table"><thead><tr><th></th><th>الاسم</th><th>جاي منين</th><th>المرحلة</th><th>حالة آخر طلب</th><th>تاريخ الإضافة</th></tr></thead><tbody>${visible.map((customer) => {
       const initial = escapeHtml((customer.name || "؟").trim().charAt(0).toUpperCase() || "؟");
       const hasOrder = customerIdsWithOrders.has(customer.id);
+      const latestOrderStatus = latestOrderStatusByCustomer[customer.id] || null;
       return `<tr class="customer-row">
         <td class="customer-avatar-cell"><span class="table-avatar" style="background:${avatarColor(customer.id || customer.name)};">${initial}</span></td>
         <td><button class="row-button customer-name-button" data-customer-id="${customer.id}" title="فتح المحادثة">${highlightMatch(customer.name, term)}${hasOrder ? `<span class="order-dot" title="لديه طلب سابق">●</span>` : ""}</button></td>
         <td>${channelLabel(customerChannels[customer.id])}</td>
         <td>${statusBadge(customer.stage)}</td>
+        <td>${latestOrderStatus ? statusBadge(latestOrderStatus) : "—"}</td>
         <td>${formatDate(customer.created_at)}</td>
       </tr>`;
     }).join("")}</tbody></table>` : emptyState("لا يوجد عملاء في هذه الفترة", "جرّب فترة زمنية أطول من الأعلى، أو غيّر كلمة البحث.");
@@ -102,6 +105,23 @@
     }
   }
 
+  async function loadLatestOrderStatuses() {
+    try {
+      const orders = await OrdersService.list(profile.company_id);
+      const map = {};
+      orders
+        .filter((order) => order.customer_id)
+        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+        .forEach((order) => {
+          if (!map[order.customer_id]) map[order.customer_id] = order.status;
+        });
+      latestOrderStatusByCustomer = map;
+    } catch (error) {
+      console.warn("Could not load latest order statuses for customers (non-fatal):", error);
+      latestOrderStatusByCustomer = {};
+    }
+  }
+
   // Customers themselves don't store a channel — it lives on their
   // conversation(s) — so this derives "where did each customer come from"
   // by looking at their (first found) conversation's channel. Best-effort:
@@ -124,7 +144,7 @@
     if (!allCustomers.length) table.innerHTML = skeletonBlock("40px", 5);
     try {
       if (!allCustomers.length) {
-        const [customersData] = await Promise.all([CustomersService.list(profile.company_id), loadOrderedCustomerIds(), loadCustomerChannels()]);
+        const [customersData] = await Promise.all([CustomersService.list(profile.company_id), loadOrderedCustomerIds(), loadLatestOrderStatuses(), loadCustomerChannels()]);
         allCustomers = customersData;
       }
       const range = DateRange.getCurrent();
@@ -139,6 +159,11 @@
   let realtimeTimer = null;
   window.addEventListener("boterarealtimechange", () => {
     clearTimeout(realtimeTimer);
-    realtimeTimer = setTimeout(() => { allCustomers = []; load(); }, 180);
+    realtimeTimer = setTimeout(() => {
+      allCustomers = [];
+      customerIdsWithOrders = new Set();
+      latestOrderStatusByCustomer = {};
+      load();
+    }, 180);
   });
 })();
