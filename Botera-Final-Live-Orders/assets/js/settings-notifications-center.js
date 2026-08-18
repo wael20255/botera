@@ -75,6 +75,26 @@
     return new URLSearchParams(window.location.search).get("alert");
   }
 
+  function readSelectedTransient() {
+    try {
+      const raw = sessionStorage.getItem("botera:selectedOperationalAlert");
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed?.id) return null;
+      sessionStorage.removeItem("botera:selectedOperationalAlert");
+      return {
+        id: parsed.id,
+        title: parsed.title || "تنبيه تشغيلي",
+        message: parsed.body || parsed.message || "",
+        type: parsed.type || parsed.level || "info",
+        level: levelOf(parsed.level || parsed.type),
+        created_at: parsed.created_at || new Date().toISOString(),
+        is_read: true,
+        transient: true,
+      };
+    } catch { return null; }
+  }
+
   async function listNotifications(profile) {
     const { data, error } = await supabaseClient
       .from("notifications")
@@ -97,10 +117,11 @@
     if (error) console.warn("Notification mark-read failed:", error);
   }
 
-  function render(root, rows, profile, selected) {
-    const unread = rows.filter(r => !r.is_read).length;
-    const critical = rows.filter(r => r.level === "critical").length;
-    const attention = rows.filter(r => r.level === "warning").length;
+  function render(root, rows, profile, selected, transient) {
+    const allRows = transient ? [transient, ...rows.filter(r => r.id !== transient.id)] : rows;
+    const unread = allRows.filter(r => !r.is_read).length;
+    const critical = allRows.filter(r => r.level === "critical").length;
+    const attention = allRows.filter(r => r.level === "warning").length;
 
     root.innerHTML = `
       <div class="botera-nc-head">
@@ -120,7 +141,7 @@
       </div>
       <div class="botera-nc-detail" data-detail></div>
       <div class="botera-nc-list" data-list>
-        ${rows.length ? rows.map(row => {
+        ${allRows.length ? allRows.map(row => {
           const meta = LEVELS[row.level] || LEVELS.info;
           return `<button class="botera-nc-item ${row.is_read ? "" : "is-unread"}" type="button" data-alert-row="${esc(row.id)}">
             <div class="botera-nc-item-head">
@@ -142,10 +163,10 @@
     };
 
     root.querySelectorAll("[data-alert-row]").forEach(btn => btn.addEventListener("click", async () => {
-      const row = rows.find(r => r.id === btn.dataset.alertRow);
+      const row = allRows.find(r => r.id === btn.dataset.alertRow);
       if (!row) return;
       showDetail(row);
-      if (!row.is_read) {
+      if (!row.transient && !row.is_read) {
         await markRead([row.id], profile);
         row.is_read = true;
         btn.classList.remove("is-unread");
@@ -153,23 +174,23 @@
     }));
 
     root.querySelector("[data-mark-all]")?.addEventListener("click", async () => {
-      const ids = rows.filter(r => !r.is_read).map(r => r.id);
+      const ids = allRows.filter(r => !r.is_read && !r.transient).map(r => r.id);
       await markRead(ids, profile);
-      rows.forEach(r => { r.is_read = true; });
-      render(root, rows, profile, selected);
+      allRows.forEach(r => { r.is_read = true; });
+      render(root, rows, profile, selected, null);
     });
     root.querySelector("[data-refresh]")?.addEventListener("click", async () => {
-      await load(root, profile, selectedId());
+      await load(root, profile, selectedId(), null);
     });
 
-    const initial = rows.find(r => r.id === selected);
+    const initial = allRows.find(r => r.id === selected) || transient;
     if (initial) showDetail(initial);
   }
 
-  async function load(root, profile, selected) {
+  async function load(root, profile, selected, transient = readSelectedTransient()) {
     try {
       const rows = await listNotifications(profile);
-      render(root, rows, profile, selected);
+      render(root, rows, profile, selected, transient);
     } catch (error) {
       root.innerHTML = `<div class="botera-nc-empty">تعذر تحميل مركز التنبيهات الآن. تحقق من الاتصال بقاعدة البيانات.</div>`;
       console.warn("Notifications center load failed:", error);
@@ -196,7 +217,7 @@
       if (new URLSearchParams(window.location.search).get("tab") === "notifications") activateNotificationsTab();
 
       window.addEventListener("boterarealtimechange", () => {
-        if (!tab.classList.contains("hidden")) void load(tab, profile, selectedId());
+        if (!tab.classList.contains("hidden")) void load(tab, profile, selectedId(), null);
       });
     } catch (error) {
       console.warn("Settings notifications center init failed:", error);
