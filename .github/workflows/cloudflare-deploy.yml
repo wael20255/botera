@@ -55,21 +55,23 @@ jobs:
           npx wrangler versions deploy "${VERSION_ID}" -y
           npx wrangler deployments list --name botera --json
 
-      - name: Verify production serves the deployed Orders assets
+      - name: Verify production serves the deployed live assets
         shell: bash
         run: |
           set -euo pipefail
-          html_marker='BOTERA_PRODUCTION_BUILD=orders-live-20260817'
+          orders_marker='BOTERA_PRODUCTION_BUILD=orders-live-20260817'
           editor_marker='BOTERA_ORDER_EDITOR_BUILD=orders-editor-live-20260817'
+          meta_marker='BOTERA_META_ADS_LIVE_BUILD=20260818-1148'
           for attempt in {1..12}; do
             echo "Production verification attempt ${attempt}/12"
             html="$(curl -fsSL --retry 2 --retry-delay 1 "${PRODUCTION_URL}/orders.html?verify=${GITHUB_SHA}" || true)"
             editor="$(curl -fsSL --retry 2 --retry-delay 1 "${PRODUCTION_URL}/assets/js/orders-editor.js?verify=${GITHUB_SHA}" || true)"
-            if printf '%s' "$html" | grep -Fq "$html_marker" && printf '%s' "$editor" | grep -Fq "$editor_marker"; then
-              echo "Production is serving the current Orders page and editor assets."
+            meta="$(curl -fsSL --retry 2 --retry-delay 1 "${PRODUCTION_URL}/assets/js/meta-ads-live-sync.js?verify=${GITHUB_SHA}" || true)"
+            if printf '%s' "$html" | grep -Fq "$orders_marker" && printf '%s' "$editor" | grep -Fq "$editor_marker" && printf '%s' "$meta" | grep -Fq "$meta_marker"; then
+              echo "Production is serving the current Orders and Meta live-sync assets."
               exit 0
             fi
             sleep 5
           done
-          echo "Production did not serve the current Orders assets."
+          echo "Production did not serve the current live assets."
           exit 1
