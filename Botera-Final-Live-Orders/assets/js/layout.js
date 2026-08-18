@@ -37,6 +37,22 @@ function setupLayout(profile) {
     window.location.href = "login.html";
   });
 
+  // Shared operational notifications center.
+  if (!document.querySelector("link[data-botera-operational-notifications-css]")) {
+    const css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = "assets/css/operational-notifications.css?v=20260818-1701";
+    css.setAttribute("data-botera-operational-notifications-css", "1");
+    document.head.appendChild(css);
+  }
+  if (!document.querySelector("script[data-botera-operational-notifications]")) {
+    const notificationsScript = document.createElement("script");
+    notificationsScript.src = "assets/js/operational-notifications.js?v=20260818-1701";
+    notificationsScript.setAttribute("data-botera-operational-notifications", "1");
+    notificationsScript.defer = true;
+    document.head.appendChild(notificationsScript);
+  }
+
   // Dedicated Meta Ads live-spend synchronizer. Versioned URL guarantees a
   // fresh file after a deploy; it performs an immediate sync on every page
   // load/refresh and then keeps syncing once per minute.
