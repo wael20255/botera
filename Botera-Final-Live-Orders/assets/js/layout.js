@@ -64,9 +64,6 @@ function setupLayout(profile) {
     document.head.appendChild(adsLiveScript);
   }
 
-  // Insights has one authoritative reports engine in insights.js.
-  // Do not load the legacy live/report overrides there because they
-  // recalculate and overwrite the authoritative metrics after render.
   const fixes = current === "insights"
     ? [
         ["data-botera-order-detail-fix", "assets/js/order-detail-fix.js"],
@@ -77,6 +74,10 @@ function setupLayout(profile) {
         ["data-botera-order-detail-fix", "assets/js/order-detail-fix.js"],
         ["data-botera-order-list-fix", "assets/js/order-list-fix.js"],
       ];
+
+  if (current === "settings") {
+    fixes.push(["data-botera-settings-notifications-center", "assets/js/settings-notifications-center.js?v=20260818-1709"]);
+  }
 
   fixes.forEach(([marker, src]) => {
     if (document.querySelector(`script[${marker}]`)) return;
