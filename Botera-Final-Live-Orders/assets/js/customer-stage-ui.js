@@ -15,14 +15,9 @@
   let profile = null;
   let timer = null;
 
-  function esc(value) {
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
+  const esc = (value) => String(value ?? "")
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 
   function stageBadge(stage) {
     const item = byKey[stage] || byKey.new;
@@ -49,12 +44,10 @@
     const root = document.getElementById("customersTable");
     if (!root) return;
     const q = (document.getElementById("customerSearch")?.value || "").trim().toLocaleLowerCase();
-    const stageRoot = document.getElementById("stageFilters");
-    const active = stageRoot?.dataset.activeStage || "all";
+    const active = document.getElementById("stageFilters")?.dataset.activeStage || "all";
     const visible = customers.filter((c) => {
       const searchHit = !q || String(c.name || "").toLocaleLowerCase().includes(q) || String(c.phone || "").toLocaleLowerCase().includes(q);
-      const stageHit = active === "all" || c.stage === active;
-      return searchHit && stageHit;
+      return searchHit && (active === "all" || c.stage === active);
     });
 
     renderStageFilters(customers);
@@ -63,12 +56,12 @@
       return;
     }
 
-    root.innerHTML = `<table class="data-table customers-table"><thead><tr><th>الاسم</th><th>جاي منين</th><th>المرحلة</th><th>حالة آخر طلب</th><th>تاريخ الإضافة</th></tr></thead><tbody>${visible.map((c) => {
+    root.innerHTML = `<table class="data-table customers-table"><thead><tr><th>الاسم</th><th>جاي منين</th><th>المرحلة</th><th>تاريخ الإضافة</th></tr></thead><tbody>${visible.map((c) => {
       const name = esc(c.name || "عميل غير معروف");
       const phone = esc(c.phone || "");
       const source = esc(c.source || "—");
       const stage = c.stage && byKey[c.stage] ? c.stage : "new";
-      return `<tr><td><button class="row-button customer-name-button" type="button" data-customer-id="${esc(c.id)}" title="فتح المحادثة">${name}${phone ? `<div class="table-subtext" dir="ltr">${phone}</div>` : ""}</button></td><td>${source}</td><td>${stageBadge(stage)}</td><td>${c.latest_order_status ? stageBadge("new") : "—"}</td><td>${esc(new Date(c.created_at).toLocaleString("ar-EG"))}</td></tr>`;
+      return `<tr><td><button class="row-button customer-name-button" type="button" data-customer-id="${esc(c.id)}" title="فتح المحادثة">${name}${phone ? `<div class="table-subtext" dir="ltr">${phone}</div>` : ""}</button></td><td>${source}</td><td>${stageBadge(stage)}</td><td>${esc(new Date(c.created_at).toLocaleString("ar-EG"))}</td></tr>`;
     }).join("")}</tbody></table>`;
 
     root.querySelectorAll("[data-customer-id]").forEach((button) => button.addEventListener("click", () => {
@@ -95,8 +88,7 @@
       profile = await useAuth.ensureAuthenticated({ requiredPermission: "can_view_customers" });
       if (!profile) return;
       await load();
-      const search = document.getElementById("customerSearch");
-      search?.addEventListener("input", () => load());
+      document.getElementById("customerSearch")?.addEventListener("input", load);
       window.addEventListener("boterarealtimechange", () => {
         clearTimeout(timer);
         timer = setTimeout(load, 120);
