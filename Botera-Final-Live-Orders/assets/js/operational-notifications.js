@@ -5,6 +5,7 @@
   const READ_KEY = "botera:operational-notifications:read";
   let profile = null;
   let refreshTimer = null;
+  let bootTimer = null;
   const esc = (v) => String(v ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
   const money = (v, c = "EGP") => `${Number(v || 0).toLocaleString("ar-EG", { maximumFractionDigits: 0 })} ${c || "EGP"}`;
   const today = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
@@ -17,10 +18,11 @@
     if (["warning","warn","attention"].includes(t)) return "warning";
     return "info";
   };
+  const hasSupabase = () => typeof supabaseClient !== "undefined" && !!supabaseClient;
 
   async function queryData() {
     const companyId = profile?.company_id;
-    if (!companyId || !window.supabaseClient) return { orders: [], customers: [], ads: [], products: [], persisted: [] };
+    if (!companyId || !hasSupabase()) return { orders: [], customers: [], ads: [], products: [], persisted: [] };
     const day = today().toISOString().slice(0,10);
     const [ordersR, customersR, adsR, productsR, notificationsR] = await Promise.all([
       supabaseClient.from("orders").select("id,order_number,status,shipping_status,total,currency,created_at,customer_id").eq("company_id", companyId).order("created_at", { ascending: false }).limit(300),
@@ -89,7 +91,7 @@
     document.getElementById("boteraNotificationsReadAll")?.addEventListener("click", async () => {
       const alerts = window.__boteraOperationalAlerts || [];
       const dbIds = alerts.filter(a => a.persisted && a.sourceId).map(a => a.sourceId);
-      if (dbIds.length) await supabaseClient.from("notifications").update({ is_read: true }).eq("company_id", profile.company_id).in("id", dbIds);
+      if (dbIds.length && hasSupabase()) await supabaseClient.from("notifications").update({ is_read: true }).eq("company_id", profile.company_id).in("id", dbIds);
       saveReadIds(alerts.filter(a => !a.persisted).map(a => a.id));
       await refresh();
     });
@@ -107,11 +109,11 @@
     count.textContent = String(unread);
     count.classList.toggle("hidden", unread === 0);
     list.innerHTML = alerts.length ? alerts.map(a => { const read = a.persisted ? a.is_read : localRead.has(a.id); return `<button class="botera-notification-item ${read ? "is-read" : ""}" data-id="${esc(a.id)}" type="button"><span class="botera-notification-dot botera-notification-${esc(a.level)}">${esc(a.icon)}</span><span class="botera-notification-copy"><strong>${esc(a.title)}</strong><small>${esc(a.body)}</small></span></button>`; }).join("") : `<div class="botera-notifications-empty">لا توجد تنبيهات حالياً ✅</div>`;
-    list.querySelectorAll("[data-id]").forEach(b => b.addEventListener("click", () => { const alert = alerts.find(a => a.id === b.dataset.id); if (!alert) return; const ids = new Set(readIds()); ids.add(alert.id); saveReadIds([...ids]); if (alert.persisted && alert.sourceId) supabaseClient.from("notifications").update({ is_read: true }).eq("company_id", profile.company_id).eq("id", alert.sourceId); routeToDetails(alert); }));
+    list.querySelectorAll("[data-id]").forEach(b => b.addEventListener("click", () => { const alert = alerts.find(a => a.id === b.dataset.id); if (!alert) return; const ids = new Set(readIds()); ids.add(alert.id); saveReadIds([...ids]); if (alert.persisted && alert.sourceId && hasSupabase()) supabaseClient.from("notifications").update({ is_read: true }).eq("company_id", profile.company_id).eq("id", alert.sourceId); routeToDetails(alert); }));
   }
 
   async function refresh() {
-    if (!profile) return;
+    if (!profile || !hasSupabase()) return;
     try {
       const data = await queryData();
       const merged = [...(data.persisted || []), ...buildDerivedAlerts(data)];
@@ -123,6 +125,10 @@
   async function init() {
     profile = window.__boteraLiveProfile || null;
     if (!profile) return;
+    if (!hasSupabase()) {
+      clearInterval(bootTimer);
+      bootTimer = setInterval(() => { if (hasSupabase()) { clearInterval(bootTimer); refresh(); } }, 250);
+    }
     ensureUI();
     await refresh();
     window.addEventListener("boterarealtimechange", () => { clearTimeout(refreshTimer); refreshTimer = setTimeout(refresh, 250); });
