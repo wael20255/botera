@@ -37,6 +37,17 @@ function setupLayout(profile) {
     window.location.href = "login.html";
   });
 
+  // Start the dedicated Meta Ads live-spend synchronizer on every page.
+  // It runs immediately, then once per minute, and emits the existing
+  // `boterarealtimechange` event so Dashboard/Insights refresh automatically.
+  if (!document.querySelector("script[data-botera-meta-ads-live-sync]")) {
+    const adsLiveScript = document.createElement("script");
+    adsLiveScript.src = "assets/js/meta-ads-live-sync.js?v=20260818-1";
+    adsLiveScript.setAttribute("data-botera-meta-ads-live-sync", "1");
+    adsLiveScript.defer = true;
+    document.head.appendChild(adsLiveScript);
+  }
+
   // Insights has one authoritative reports engine in insights.js.
   // Do not load the legacy live/report overrides there because they
   // recalculate and overwrite the authoritative metrics after render.
