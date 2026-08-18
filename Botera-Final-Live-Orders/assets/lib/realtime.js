@@ -1,5 +1,6 @@
 // Botera realtime bridge: one authenticated Supabase Realtime channel per page.
-// Page scripts listen for `boterarealtimechange` and refresh only their data.
+// All live project pages listen for `boterarealtimechange` and refresh their own data.
+// BUILD: live-sync-20260818-2
 (function () {
   if (window.__boteraRealtimeStarted) return;
   window.__boteraRealtimeStarted = true;
@@ -30,8 +31,6 @@
     if (!acquireAdSyncLock(companyId)) return;
 
     try {
-      // Keep historical spend already stored in `ad_expenses`; refresh only today
-      // every minute so the current day's Meta spend behaves like live data.
       const day = todayIso();
       const result = await supabaseClient.functions.invoke("sync-meta-ads-spend-v2", {
         body: { company_id: companyId, since: day, until: day },
@@ -42,6 +41,8 @@
         return;
       }
 
+      // Explicitly notify all page modules immediately after the external
+      // Meta source has been written to `ad_expenses`.
       window.dispatchEvent(new CustomEvent("boterarealtimechange", {
         detail: {
           source: "meta-ads-live-sync",
@@ -57,6 +58,7 @@
 
   window.startBoteraRealtime = function (profile) {
     if (!profile?.company_id || !window.supabaseClient) return;
+
     if (window.__boteraRealtime) window.__boteraRealtime.unsubscribe();
     if (window.__boteraAdsLiveSyncTimer) clearInterval(window.__boteraAdsLiveSyncTimer);
 
@@ -74,18 +76,24 @@
       ["shipping_expenses", "company_id"],
       ["shipping_settings", "company_id"],
     ].forEach(([table, column]) => {
-      channel.on("postgres_changes", { event: "*", schema: "public", table, filter: `${column}=eq.${companyId}` }, dispatch);
+      channel.on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table,
+        filter: `${column}=eq.${companyId}`,
+      }, dispatch);
     });
 
-    // Messages inherit company scope through their conversation, so the
-    // table itself has no company_id. Supabase Realtime + RLS still controls
-    // which rows are delivered to the authenticated client.
     channel.on("postgres_changes", { event: "*", schema: "public", table: "messages" }, dispatch);
     channel.subscribe((status) => dispatch({ event: "SUBSCRIBED", status }));
     window.__boteraRealtime = channel;
 
-    // First sync immediately, then refresh Meta's current-day spend once per minute.
-    syncMetaAdsSpend(companyId);
-    window.__boteraAdsLiveSyncTimer = window.setInterval(() => syncMetaAdsSpend(companyId), AD_SYNC_INTERVAL_MS);
+    const runMetaSync = () => syncMetaAdsSpend(companyId);
+    runMetaSync();
+    window.__boteraAdsLiveSyncTimer = window.setInterval(runMetaSync, AD_SYNC_INTERVAL_MS);
+    window.addEventListener("pageshow", runMetaSync);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) runMetaSync();
+    });
   };
 })();
