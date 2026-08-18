@@ -1,0 +1,24 @@
+.botera-notifications-wrap{position:relative;display:flex;align-items:center;margin-inline-start:auto;margin-inline-end:var(--space-3)}
+.botera-notifications-button{position:relative;width:38px;height:38px;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text);border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 120ms ease,border-color 120ms ease}
+.botera-notifications-button:hover{background:var(--color-surface-2);border-color:var(--color-neon)}
+.botera-notifications-icon{font-size:17px;line-height:1}
+.botera-notifications-count{position:absolute;top:-4px;inset-inline-end:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:999px;background:var(--color-red);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--color-bg)}
+.botera-notifications-panel{position:absolute;top:48px;inset-inline-end:0;width:min(390px,calc(100vw - 32px));background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);box-shadow:0 14px 45px rgba(0,0,0,.18);overflow:hidden;z-index:30}
+.botera-notifications-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--color-border)}
+.botera-notifications-head strong{display:block;font-size:14px}
+.botera-notifications-head small{display:block;color:var(--color-text-muted);font-size:11px;margin-top:3px}
+.botera-notifications-list{max-height:420px;overflow:auto}
+.botera-notification-item{width:100%;display:flex;gap:11px;align-items:flex-start;text-align:start;padding:13px 15px;border:0;border-bottom:1px solid var(--color-border);background:transparent;color:var(--color-text);cursor:pointer}
+.botera-notification-item:hover{background:var(--color-surface-2)}
+.botera-notification-item.is-read{opacity:.62}
+.botera-notification-dot{width:28px;height:28px;min-width:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--color-surface-2);font-size:13px}
+.botera-notification-copy{min-width:0;display:flex;flex-direction:column;gap:4px}
+.botera-notification-copy strong{font-size:13px;line-height:1.35}
+.botera-notification-copy small{color:var(--color-text-muted);font-size:11px;line-height:1.5}
+.botera-notification-critical{background:rgba(239,68,68,.12)}
+.botera-notification-warning{background:rgba(245,158,11,.12)}
+.botera-notification-info{background:rgba(59,130,246,.12)}
+.botera-notifications-empty{padding:36px 20px;text-align:center;color:var(--color-text-muted);font-size:13px}
+.botera-notifications-panel.hidden{display:none}
+.botera-notifications-count.hidden{display:none}
+@media(max-width:700px){.botera-notifications-wrap{margin-inline-start:8px;margin-inline-end:8px}.botera-notifications-panel{inset-inline-end:-90px}}
