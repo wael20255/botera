@@ -58,6 +58,12 @@
     }
   },true);
 
+  // Expose the existing lexical globals to the enhancement script.
+  try {
+    if (typeof useAuth !== 'undefined') window.useAuth = useAuth;
+    if (typeof supabaseClient !== 'undefined') window.supabaseClient = supabaseClient;
+  } catch (_) {}
+
   // Load the shared integrations UX enhancement after the base settings code starts.
   // It watches the DOM so Google Sheets can render after settings.js finishes its async load.
   try {
