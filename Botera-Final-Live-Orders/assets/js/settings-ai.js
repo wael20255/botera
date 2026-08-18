@@ -116,3 +116,12 @@
   }, 5000);
   window.addEventListener("beforeunload", () => clearInterval(refreshTimer), { once: true });
 })();
+
+// Load the Google Sheets Orders integration after the main Settings scripts.
+(function loadGoogleSheetsOrdersIntegration(){
+  if(window.__boteraGoogleSheetsLoader)return; window.__boteraGoogleSheetsLoader=true;
+  const s=document.createElement('script');
+  s.src='assets/js/settings-google-sheets-v1.js?v=20260818-2';
+  s.async=false;
+  document.body.appendChild(s);
+})();
