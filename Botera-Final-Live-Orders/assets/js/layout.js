@@ -37,12 +37,12 @@ function setupLayout(profile) {
     window.location.href = "login.html";
   });
 
-  // Start the dedicated Meta Ads live-spend synchronizer on every page.
-  // It runs immediately, then once per minute, and emits the existing
-  // `boterarealtimechange` event so Dashboard/Insights refresh automatically.
+  // Dedicated Meta Ads live-spend synchronizer. Versioned URL guarantees a
+  // fresh file after a deploy; it performs an immediate sync on every page
+  // load/refresh and then keeps syncing once per minute.
   if (!document.querySelector("script[data-botera-meta-ads-live-sync]")) {
     const adsLiveScript = document.createElement("script");
-    adsLiveScript.src = "assets/js/meta-ads-live-sync.js?v=20260818-1";
+    adsLiveScript.src = "assets/js/meta-ads-live-sync.js?v=20260818-1155";
     adsLiveScript.setAttribute("data-botera-meta-ads-live-sync", "1");
     adsLiveScript.defer = true;
     document.head.appendChild(adsLiveScript);
