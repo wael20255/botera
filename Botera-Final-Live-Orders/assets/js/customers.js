@@ -11,8 +11,19 @@
   let customerIdsWithOrders = new Set();
   let latestOrderStatusByCustomer = {};
   let customerChannels = {};
-  const stages = ["new", "asking", "collect", "closed"];
-  const labels = { all: "الكل", new: "جديد", asking: "بيترشحلو المنتج", collect: "بيجمع البيانات", closed: "تم الحجز" };
+
+  // Canonical customer journey — do not add/remove stages here without
+  // changing the database classification rules at the same time.
+  const stages = ["new", "product_shown", "price_shown", "booked", "following"];
+  const labels = {
+    all: "الكل",
+    new: "جديد",
+    product_shown: "تم عرض المنتج",
+    price_shown: "تم عرض السعر",
+    booked: "تم الحجز",
+    following: "بيتابع",
+  };
+
   const search = document.getElementById("customerSearch");
   const filters = document.getElementById("stageFilters");
   const table = document.getElementById("customersTable");
@@ -61,28 +72,42 @@
   function render() {
     const base = searchedCustomers();
     const term = search.value.trim();
-    filters.innerHTML = ["all", ...stages].map((stage) => `<button class="filter-button ${activeStage === stage ? "active" : ""}" data-stage="${stage}">${labels[stage]} (${stage === "all" ? base.length : base.filter((customer) => customer.stage === stage).length})</button>`).join("");
-    filters.querySelectorAll("button").forEach((button) => button.addEventListener("click", () => { activeStage = button.dataset.stage; render(); }));
+    filters.innerHTML = ["all", ...stages]
+      .map((stage) => `<button class="filter-button ${activeStage === stage ? "active" : ""}" data-stage="${stage}">${labels[stage]} (${stage === "all" ? base.length : base.filter((customer) => customer.stage === stage).length})</button>`)
+      .join("");
+
+    filters.querySelectorAll("button").forEach((button) => {
+      button.addEventListener("click", () => {
+        activeStage = button.dataset.stage;
+        render();
+      });
+    });
 
     const visible = base.filter((customer) => activeStage === "all" || customer.stage === activeStage);
-    table.innerHTML = visible.length ? `<table class="data-table customers-table"><thead><tr><th></th><th>الاسم</th><th>جاي منين</th><th>المرحلة</th><th>حالة آخر طلب</th><th>تاريخ الإضافة</th></tr></thead><tbody>${visible.map((customer) => {
-      const initial = escapeHtml((customer.name || "؟").trim().charAt(0).toUpperCase() || "؟");
-      const hasOrder = customerIdsWithOrders.has(customer.id);
-      const latestOrderStatus = latestOrderStatusByCustomer[customer.id] || null;
-      return `<tr class="customer-row">
-        <td class="customer-avatar-cell"><span class="table-avatar" style="background:${avatarColor(customer.id || customer.name)};">${initial}</span></td>
-        <td><button class="row-button customer-name-button" data-customer-id="${customer.id}" title="فتح المحادثة">${highlightMatch(customer.name, term)}${hasOrder ? `<span class="order-dot" title="لديه طلب سابق">●</span>` : ""}</button></td>
-        <td>${channelLabel(customerChannels[customer.id])}</td>
-        <td>${stageBadge(customer.stage)}</td>
-        <td>${latestOrderStatus ? statusBadge(latestOrderStatus) : "—"}</td>
-        <td>${formatDate(customer.created_at)}</td>
-      </tr>`;
-    }).join("")}</tbody></table>` : emptyState("لا يوجد عملاء في هذه الفترة", "جرّب فترة زمنية أطول من الأعلى، أو غيّر كلمة البحث.");
+    table.innerHTML = visible.length
+      ? `<table class="data-table customers-table"><thead><tr><th></th><th>الاسم</th><th>جاي منين</th><th>المرحلة</th><th>حالة آخر طلب</th><th>تاريخ الإضافة</th></tr></thead><tbody>${visible.map((customer) => {
+          const initial = escapeHtml((customer.name || "؟").trim().charAt(0).toUpperCase() || "؟");
+          const hasOrder = customerIdsWithOrders.has(customer.id);
+          const latestOrderStatus = latestOrderStatusByCustomer[customer.id] || null;
+          const normalizedStage = stages.includes(customer.stage) ? customer.stage : "new";
+          return `<tr class="customer-row">
+            <td class="customer-avatar-cell"><span class="table-avatar" style="background:${avatarColor(customer.id || customer.name)};">${initial}</span></td>
+            <td><button class="row-button customer-name-button" data-customer-id="${customer.id}" title="فتح المحادثة">${highlightMatch(customer.name, term)}${hasOrder ? `<span class="order-dot" title="لديه طلب سابق">●</span>` : ""}</button></td>
+            <td>${channelLabel(customerChannels[customer.id])}</td>
+            <td>${stageBadge(normalizedStage)}</td>
+            <td>${latestOrderStatus ? statusBadge(latestOrderStatus) : "—"}</td>
+            <td>${formatDate(customer.created_at)}</td>
+          </tr>`;
+        }).join("")}</tbody></table>`
+      : emptyState("لا يوجد عملاء في هذه المرحلة", "غيّر المرحلة أو كلمة البحث.");
 
-    table.querySelectorAll("[data-customer-id]").forEach((button) => button.addEventListener("click", () => {
-      window.location.href = `conversations.html?customer=${encodeURIComponent(button.dataset.customerId)}`;
-    }));
+    table.querySelectorAll("[data-customer-id]").forEach((button) => {
+      button.addEventListener("click", () => {
+        window.location.href = `conversations.html?customer=${encodeURIComponent(button.dataset.customerId)}`;
+      });
+    });
   }
+
   search.addEventListener("input", render);
 
   async function loadOrderedCustomerIds() {
@@ -147,37 +172,7 @@
     }
   }
 
-  async function backfillStagesInBackground() {
-    const key = `botera:customer-stage-backfill-v1:${profile.company_id}`;
-    if (localStorage.getItem(key) === "done") return;
-    let offset = Number(localStorage.getItem(key) || 0);
-    try {
-      while (true) {
-        const { data, error } = await supabaseClient.functions.invoke("backfill-customer-stages-v1", {
-          body: { offset, batch_size: 8 },
-        });
-        if (error || !data?.ok) {
-          console.warn("Customer stage backfill stopped:", error || data);
-          break;
-        }
-        offset = Number(data.next_offset || offset);
-        localStorage.setItem(key, String(offset));
-        if (!data.has_more) {
-          localStorage.setItem(key, "done");
-          break;
-        }
-      }
-      allCustomers = [];
-      customerIdsWithOrders = new Set();
-      latestOrderStatusByCustomer = {};
-      await load();
-    } catch (error) {
-      console.warn("Customer stage backfill failed:", error);
-    }
-  }
-
   await load();
-  void backfillStagesInBackground();
 
   window.addEventListener("boteradaterangechange", load);
   let realtimeTimer = null;
