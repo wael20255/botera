@@ -84,6 +84,15 @@
     host.appendChild(button);
   }
 
+  function ensureNotificationsCenterScript() {
+    if (document.querySelector('script[data-botera-settings-notifications-center]')) return;
+    const script = document.createElement('script');
+    script.src = 'assets/js/settings-notifications-center.js?v=20260818-1718';
+    script.setAttribute('data-botera-settings-notifications-center', '1');
+    script.defer = false;
+    document.body.appendChild(script);
+  }
+
   async function enhance() {
     if (!profile || booting) return;
     booting = true;
@@ -106,6 +115,7 @@
       if (typeof useAuth === 'undefined') return;
       profile = await useAuth.ensureAuthenticated({ requiredPermission: 'can_view_settings' });
       if (!profile) return;
+      ensureNotificationsCenterScript();
       const observer = new MutationObserver(() => enhance());
       observer.observe(document.body, { childList: true, subtree: true });
       await enhance();
