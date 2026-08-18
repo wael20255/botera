@@ -57,4 +57,18 @@
       if(button){button.disabled=false;button.textContent='حفظ وربط';}
     }
   },true);
+
+  // Load the shared integrations UX enhancement after the base settings code starts.
+  // It watches the DOM so Google Sheets can render after settings.js finishes its async load.
+  try {
+    if (!window.__boteraIntegrationsEnhancementLoaded) {
+      window.__boteraIntegrationsEnhancementLoaded = true;
+      const script = document.createElement('script');
+      script.src = 'assets/js/settings-integrations-enhancement.js?v=20260818-1';
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+  } catch (e) {
+    console.warn('Could not load integrations enhancement:', e);
+  }
 })();
