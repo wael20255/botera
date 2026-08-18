@@ -37,7 +37,6 @@ function setupLayout(profile) {
     window.location.href = "login.html";
   });
 
-  // Shared operational notifications center.
   if (!document.querySelector("link[data-botera-operational-notifications-css]")) {
     const css = document.createElement("link");
     css.rel = "stylesheet";
@@ -47,15 +46,12 @@ function setupLayout(profile) {
   }
   if (!document.querySelector("script[data-botera-operational-notifications]")) {
     const notificationsScript = document.createElement("script");
-    notificationsScript.src = "assets/js/operational-notifications.js?v=20260818-1701";
+    notificationsScript.src = "assets/js/operational-notifications.js?v=20260818-1728";
     notificationsScript.setAttribute("data-botera-operational-notifications", "1");
     notificationsScript.defer = true;
     document.head.appendChild(notificationsScript);
   }
 
-  // Dedicated Meta Ads live-spend synchronizer. Versioned URL guarantees a
-  // fresh file after a deploy; it performs an immediate sync on every page
-  // load/refresh and then keeps syncing once per minute.
   if (!document.querySelector("script[data-botera-meta-ads-live-sync]")) {
     const adsLiveScript = document.createElement("script");
     adsLiveScript.src = "assets/js/meta-ads-live-sync.js?v=20260818-1155";
@@ -76,7 +72,8 @@ function setupLayout(profile) {
       ];
 
   if (current === "settings") {
-    fixes.push(["data-botera-settings-notifications-center", "assets/js/settings-notifications-center.js?v=20260818-1709"]);
+    fixes.push(["data-botera-settings-notifications-center", "assets/js/settings-notifications-center.js?v=20260818-1728"]);
+    fixes.push(["data-botera-settings-google-sheets-bootstrap", "assets/js/settings-google-sheets-bootstrap.js?v=20260818-1728"]);
   }
 
   fixes.forEach(([marker, src]) => {
