@@ -1,12 +1,14 @@
-// BOTERA_META_ADS_LIVE_BUILD=20260818-1148
-// Live Meta Ads spend sync. Runs independently of page-specific realtime wiring.
+// BOTERA_META_ADS_LIVE_BUILD=20260818-1155
+// Live Meta Ads spend sync. Refresh-safe + 60-second polling.
 (function () {
   if (window.__boteraMetaAdsLiveSyncStarted) return;
   window.__boteraMetaAdsLiveSyncStarted = true;
 
   const INTERVAL_MS = 60 * 1000;
-  const LOCK_KEY = "botera:meta-ads-live-sync-v2";
+  const LOCK_KEY = "botera:meta-ads-live-sync-v3";
   const LOCK_MS = 55 * 1000;
+  let timer = null;
+  let currentProfile = null;
 
   const today = () => new Date().toISOString().slice(0, 10);
 
@@ -22,8 +24,9 @@
     }
   }
 
-  async function sync(profile) {
-    if (!profile?.company_id || document.hidden || !window.supabaseClient?.functions?.invoke) return;
+  async function sync(profile, force = false) {
+    if (!profile?.company_id || !window.supabaseClient?.functions?.invoke) return;
+    if (document.hidden && !force) return;
     if (!lock(profile.company_id)) return;
 
     try {
@@ -50,21 +53,30 @@
     }
   }
 
-  async function boot() {
+  async function getProfileAndSync(force = false) {
     try {
-      const profile = await window.useAuth?.ensureAuthenticated?.();
-      if (!profile?.company_id) return;
-
-      await sync(profile);
-      window.setInterval(() => sync(profile), INTERVAL_MS);
+      if (!currentProfile) currentProfile = await window.useAuth?.ensureAuthenticated?.();
+      if (!currentProfile?.company_id) return;
+      await sync(currentProfile, force);
     } catch (error) {
-      console.warn("Meta live spend sync boot failed:", error);
+      console.warn("Meta live spend sync refresh failed:", error);
     }
   }
 
+  function start() {
+    getProfileAndSync(true); // every fresh page load / hard refresh
+    if (timer) clearInterval(timer);
+    timer = window.setInterval(() => getProfileAndSync(false), INTERVAL_MS);
+
+    window.addEventListener("pageshow", () => getProfileAndSync(true));
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) getProfileAndSync(true);
+    });
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot, { once: true });
+    document.addEventListener("DOMContentLoaded", start, { once: true });
   } else {
-    boot();
+    start();
   }
 })();
