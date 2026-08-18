@@ -29,8 +29,6 @@
     if(!adAccountId||!accessToken||!appId||!appSecret){show(form,'أكمل بيانات Meta المطلوبة أولًا.');return;}
     if(button){button.disabled=true;button.textContent='جارٍ التحقق والمزامنة…';}
     try{
-      // IMPORTANT: Ads no longer uses save-integration-credentials-v2.
-      // That legacy path used an invalid Insights fields list containing currency.
       const saved=await invoke('save-meta-ads-connection-v2',{
         company_id:profile.company_id,
         ad_account_id:adAccountId,
@@ -58,23 +56,25 @@
     }
   },true);
 
-  // Expose the existing lexical globals to the enhancement script.
   try {
     if (typeof useAuth !== 'undefined') window.useAuth = useAuth;
     if (typeof supabaseClient !== 'undefined') window.supabaseClient = supabaseClient;
   } catch (_) {}
 
-  // Load the shared integrations UX enhancement after the base settings code starts.
-  // It watches the DOM so Google Sheets can render after settings.js finishes its async load.
   try {
     if (!window.__boteraIntegrationsEnhancementLoaded) {
       window.__boteraIntegrationsEnhancementLoaded = true;
       const script = document.createElement('script');
-      script.src = 'assets/js/settings-integrations-enhancement.js?v=20260818-1';
+      script.src = 'assets/js/settings-integrations-enhancement.js?v=20260818-2';
       script.defer = true;
       document.head.appendChild(script);
+
+      const cleanup = document.createElement('script');
+      cleanup.src = 'assets/js/settings-integrations-minimal.js?v=20260818-1';
+      cleanup.defer = true;
+      document.head.appendChild(cleanup);
     }
   } catch (e) {
-    console.warn('Could not load integrations enhancement:', e);
+    console.warn('Could not load integrations enhancements:', e);
   }
 })();
