@@ -55,26 +55,4 @@
       if(button){button.disabled=false;button.textContent='حفظ وربط';}
     }
   },true);
-
-  try {
-    if (typeof useAuth !== 'undefined') window.useAuth = useAuth;
-    if (typeof supabaseClient !== 'undefined') window.supabaseClient = supabaseClient;
-  } catch (_) {}
-
-  try {
-    if (!window.__boteraIntegrationsEnhancementLoaded) {
-      window.__boteraIntegrationsEnhancementLoaded = true;
-      const script = document.createElement('script');
-      script.src = 'assets/js/settings-integrations-enhancement.js?v=20260818-2';
-      script.defer = true;
-      document.head.appendChild(script);
-
-      const cleanup = document.createElement('script');
-      cleanup.src = 'assets/js/settings-integrations-minimal.js?v=20260818-1';
-      cleanup.defer = true;
-      document.head.appendChild(cleanup);
-    }
-  } catch (e) {
-    console.warn('Could not load integrations enhancements:', e);
-  }
 })();
