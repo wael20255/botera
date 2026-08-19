@@ -1,6 +1,6 @@
 // Botera realtime bridge: one authenticated Supabase Realtime channel per page.
 // All live project pages listen for `boterarealtimechange` and refresh their own data.
-// BUILD: live-sync-20260818-2
+// BUILD: live-sync-20260819-notifications
 (function () {
   if (window.__boteraRealtimeStarted) return;
   window.__boteraRealtimeStarted = true;
@@ -41,8 +41,6 @@
         return;
       }
 
-      // Explicitly notify all page modules immediately after the external
-      // Meta source has been written to `ad_expenses`.
       window.dispatchEvent(new CustomEvent("boterarealtimechange", {
         detail: {
           source: "meta-ads-live-sync",
@@ -75,6 +73,7 @@
       ["ad_expenses", "company_id"],
       ["shipping_expenses", "company_id"],
       ["shipping_settings", "company_id"],
+      ["notifications", "company_id"],
     ].forEach(([table, column]) => {
       channel.on("postgres_changes", {
         event: "*",
