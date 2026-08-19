@@ -6,7 +6,7 @@
     if (!document.body?.dataset?.page || document.body.dataset.page !== "settings") return;
     if (document.querySelector("script[data-botera-google-sheets-v1]")) return;
     const script = document.createElement("script");
-    script.src = "assets/js/settings-google-sheets-v1.js?v=20260818-1728";
+    script.src = "assets/js/settings-google-sheets-v1.js?v=20260819-1000";
     script.dataset.boteraGoogleSheetsV1 = "1";
     script.defer = true;
     document.head.appendChild(script);
