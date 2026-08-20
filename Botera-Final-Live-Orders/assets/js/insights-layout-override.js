@@ -1,9 +1,9 @@
-// Insights KPI presentation + live Meta Ads synchronization.
+// Insights KPI presentation + continuous live Meta Ads synchronization.
 // Required order: ads + orders, then revenue + net profit, then all remaining cards.
 (function () {
   const rootSelector = "#reportsMetrics";
   const labels = { ad: "صرف الإعلانات", orders: "عدد الأوردرات", revenue: "الإيرادات", profit: "صافي الربح", aov: "متوسط قيمة الطلب" };
-  let lastMetaSync = 0;
+  let syncInFlight = false;
 
   function cairoToday() {
     return new Intl.DateTimeFormat("en-CA", {
@@ -12,19 +12,27 @@
   }
 
   async function syncMetaLive() {
-    const now = Date.now();
-    if (now - lastMetaSync < 60000) return;
-    lastMetaSync = now;
+    if (syncInFlight || document.hidden) return;
+    syncInFlight = true;
     try {
       const day = cairoToday();
       const { error } = await supabaseClient.functions.invoke("sync-meta-ads-spend-v2", {
         body: { since: day, until: day }
       });
-      if (error) console.error("Meta live spend sync failed:", error);
+      if (error) {
+        console.error("Meta live spend sync failed:", error);
+        return;
+      }
+      // Force the authoritative Insights engine to re-read ad_expenses immediately.
+      window.dispatchEvent(new Event("boterarealtimechange"));
+      if (typeof window.__boteraRenderInsights === "function") {
+        window.__boteraRenderInsights();
+      }
     } catch (error) {
       console.error("Meta live spend sync failed:", error);
+    } finally {
+      syncInFlight = false;
     }
-    window.dispatchEvent(new Event("boterarealtimechange"));
   }
 
   function cardByLabel(text) {
@@ -54,15 +62,21 @@
     const observer = new MutationObserver(() => {
       if (scheduled) return;
       scheduled = true;
-      requestAnimationFrame(() => { scheduled = false; observer.disconnect(); reorder(); observer.observe(root, { childList: true, subtree: true }); });
+      requestAnimationFrame(() => {
+        scheduled = false;
+        observer.disconnect();
+        reorder();
+        observer.observe(root, { childList: true, subtree: true });
+      });
     });
     observer.observe(root, { childList: true, subtree: true });
     setTimeout(reorder, 50);
     return true;
   }
 
+  // First sync immediately, then poll Meta every 10 seconds while Insights is open.
   syncMetaLive();
-  setInterval(syncMetaLive, 30000);
+  setInterval(syncMetaLive, 10000);
   const boot = () => observe() || setTimeout(boot, 100);
   boot();
 })();
