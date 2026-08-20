@@ -110,6 +110,8 @@
     analytics.innerHTML = `<article class="card"><h2 class="section-title">المنتج الأكثر مبيعًا</h2>${productsHtml}</article><article class="card"><h2 class="section-title">القناة الأكثر جلبًا للطلبات</h2>${channelsHtml}</article>`;
   }
 
+  // Filters by customer name/phone (case-insensitive substring), same
+  // convention as the Customers page's search box.
   function searchedOrders() {
     const query = search.value.trim().toLocaleLowerCase();
     if (!query) return orders;
@@ -128,14 +130,16 @@
   function renderTable() {
     const base = searchedOrders();
     const visible = base.filter((order) => activeStatus === "all" || order.status === activeStatus);
-    table.innerHTML = visible.length ? `<table class="data-table orders-table"><thead><tr><th>الكود</th><th>العميل</th><th>المنتج</th><th>الإجمالي</th><th>الحالة</th><th>القناة</th><th>التاريخ</th><th>إجراءات</th><th></th></tr></thead><tbody>${visible.map((order) => `<tr><td><button class="row-button" data-order-id="${order.id}">${escapeHtml(order.order_number || "—")}</button></td><td><button class="row-button" data-customer-id="${order.customer_id || ""}" title="فتح المحادثة">${escapeHtml(customerName(order) || "عميل غير معروف")}</button></td><td class="product-cell">${productSummary(order)}</td><td>${formatMoney(order.total, order.currency)}</td><td>${statusBadge(order.status)}</td><td>${channelLabel(orderChannel(order))}</td><td>${formatDate(order.created_at)}</td><td class="order-quick-actions"><button class="btn-secondary btn-sm" data-quick-status="shipped" data-quick-order-id="${order.id}" type="button">تم الشحن</button><button class="btn-secondary btn-sm" data-quick-status="delivered" data-quick-order-id="${order.id}" type="button">تم التسليم</button><button class="btn-secondary btn-sm" data-quick-status="refunded" data-quick-order-id="${order.id}" type="button">مرتجع</button></td><td><button class="icon-btn icon-btn-sm" data-history-id="${order.customer_id || ""}" title="سجل مشتريات العميل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></button></td></tr>`).join("")}</tbody></table>` : emptyState(search.value.trim() ? "لا توجد نتائج" : "لا توجد طلبات", search.value.trim() ? "جرّب اسمًا أو رقم هاتف مختلف." : "ستظهر الطلبات عند وصولها إلى قاعدة البيانات.");
+    table.innerHTML = visible.length ? `<table class="data-table orders-table"><thead><tr><th>الكود</th><th>العميل</th><th>المنتج</th><th>الإجمالي</th><th>الحالة</th><th>القناة</th><th>التاريخ</th><th>إجراءات</th><th></th></tr></thead><tbody>${visible.map((order) => `<tr><td><button class="row-button" data-order-id="${order.id}">${escapeHtml(order.order_number || "—")}</button></td><td><button class="row-button" data-customer-id="${order.customer_id || ""}" title="فتح المحادثة">${escapeHtml(customerName(order) || "عميل غير معروف")}</button></td><td class="product-cell">${productSummary(order)}</td><td>${formatMoney(order.total, order.currency)}</td><td>${statusBadge(order.status)}</td><td>${channelLabel(orderChannel(order))}</td><td>${formatDate(order.created_at)}</td><td class="order-quick-actions"><button class="btn-secondary btn-sm" data-quick-status="delivered" data-quick-order-id="${order.id}" type="button">تم التسليم</button><button class="btn-secondary btn-sm" data-quick-status="refunded" data-quick-order-id="${order.id}" type="button">مرتجع</button></td><td><button class="icon-btn icon-btn-sm" data-history-id="${order.customer_id || ""}" title="سجل مشتريات العميل"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></button></td></tr>`).join("")}</tbody></table>` : emptyState(search.value.trim() ? "لا توجد نتائج" : "لا توجد طلبات", search.value.trim() ? "جرّب اسمًا أو رقم هاتف مختلف." : "ستظهر الطلبات عند وصولها إلى قاعدة البيانات.");
     table.querySelectorAll("[data-order-id]").forEach((button) => button.addEventListener("click", () => openOrder(button.dataset.orderId)));
+    // Opens the customer's chat directly (conversations.js reads
+    // ?customer=<id> and opens the matching thread automatically) — same
+    // deep-link used from the Customers page.
     table.querySelectorAll("[data-quick-order-id]").forEach((button) => button.addEventListener("click", async (event) => {
       event.stopPropagation();
       const orderId = button.dataset.quickOrderId;
       const newStatus = button.dataset.quickStatus;
-      const labelMap = { shipped: "تم الشحن", delivered: "تم التسليم", refunded: "مرتجع" };
-      const label = labelMap[newStatus] || newStatus;
+      const label = newStatus === "delivered" ? "تم التسليم" : "مرتجع";
       button.disabled = true;
       const oldText = button.textContent;
       button.textContent = "جارٍ…";
@@ -159,6 +163,8 @@
         window.location.href = `conversations.html?customer=${encodeURIComponent(button.dataset.customerId)}`;
       });
     });
+    // The small icon at the end of the row: full purchase history for that
+    // customer (every order they've ever placed, not just this one).
     table.querySelectorAll("[data-history-id]").forEach((button) => {
       if (!button.dataset.historyId) return;
       button.addEventListener("click", () => openCustomerHistory(button.dataset.historyId));
@@ -172,7 +178,7 @@
     if (!order) return;
     const items = orderItems(order);
     const itemsHtml = items.length ? items.map((item) => `<li>${escapeHtml(item.product_name)} — ${item.quantity} × ${formatMoney(item.price, order.currency)}</li>`).join("") : emptyState("لا توجد تفاصيل منتجات", "لا توجد عناصر مسجلة لهذا الطلب.");
-    details.innerHTML = `<div class="dialog-header"><h2 class="section-title">${escapeHtml(order.order_number || "—")}</h2><button class="btn-secondary" id="closeOrderModal" type="button">إغلاق</button></div><div class="settings-tabs"><button class="filter-button active" data-order-tab="details" type="button">التفاصيل</button><button class="filter-button" data-order-tab="shipping" type="button">الشحن</button></div><div data-order-panel="details"><ul class="detail-list"><li><strong>العميل:</strong> ${escapeHtml(customerName(order) || "عميل غير معروف")}</li><li><strong>القناة:</strong> ${channelLabel(orderChannel(order))}</li><li><strong>حالة الدفع:</strong> ${statusBadge(order.payment_status)}</li><li><strong>المنتجات:</strong><ul class="detail-list">${itemsHtml}</ul></li></ul><h3 class="section-title" style="margin-top:var(--space-5);">تحديث الحالة يدويًا</h3><div class="status-actions">${statuses.map((status) => `<button class="btn-secondary" data-update-status="${status}" type="button">${filterLabels[status]}</button>`).join("")}</div><p style="color:var(--muted);margin-top:10px;">تقدر تحدد «تم الشحن» أو «تم التسليم» أو «مرتجع» يدويًا الآن، ولما نربط شركة الشحن هنخلي الحالة تتحدث تلقائيًا.</p><p class="error-message status-message" id="orderUpdateError"></p></div><div class="hidden" data-order-panel="shipping"><div class="empty-state"><div class="empty-state-icon">···</div><div class="empty-state-title">حالة الشحن الحالية: ${statusBadge(order.shipping_status || order.status)}</div><div class="empty-state-desc">لا توجد تفاصيل تتبع إضافية في قاعدة البيانات حالياً.</div></div></div>`;
+    details.innerHTML = `<div class="dialog-header"><h2 class="section-title">${escapeHtml(order.order_number || "—")}</h2><button class="btn-secondary" id="closeOrderModal" type="button">إغلاق</button></div><div class="settings-tabs"><button class="filter-button active" data-order-tab="details" type="button">التفاصيل</button><button class="filter-button" data-order-tab="shipping" type="button">الشحن</button></div><div data-order-panel="details"><ul class="detail-list"><li><strong>العميل:</strong> ${escapeHtml(customerName(order) || "عميل غير معروف")}</li><li><strong>القناة:</strong> ${channelLabel(orderChannel(order))}</li><li><strong>حالة الدفع:</strong> ${statusBadge(order.payment_status)}</li><li><strong>المنتجات:</strong><ul class="detail-list">${itemsHtml}</ul></li></ul><h3 class="section-title" style="margin-top:var(--space-5);">تحديث الحالة يدويًا</h3><div class="status-actions">${statuses.map((status) => `<button class="btn-secondary" data-update-status="${status}" type="button">${filterLabels[status]}</button>`).join("")}</div><p style="color:var(--muted);margin-top:10px;">تقدر تحدد «تم التسليم» أو «مرتجع» يدويًا الآن، ولما نربط شركة الشحن هنخلي الحالة تتحدث تلقائيًا.</p><p class="error-message status-message" id="orderUpdateError"></p></div><div class="hidden" data-order-panel="shipping"><div class="empty-state"><div class="empty-state-icon">···</div><div class="empty-state-title">حالة الشحن الحالية: ${statusBadge(order.shipping_status || order.status)}</div><div class="empty-state-desc">لا توجد تفاصيل تتبع إضافية في قاعدة البيانات حالياً.</div></div></div>`;
     document.getElementById("closeOrderModal").addEventListener("click", () => modal.close());
     details.querySelectorAll("[data-order-tab]").forEach((button) => button.addEventListener("click", () => {
       const selectedTab = button.dataset.orderTab;
@@ -183,6 +189,10 @@
     modal.showModal();
   }
 
+  // Full purchase history for one customer: every order they've ever
+  // placed (from allOrders — deliberately NOT limited to the current date
+  // range, since "how many times have they bought" is a lifetime stat),
+  // plus how many times and how much they've spent in total.
   function openCustomerHistory(customerId) {
     const customerOrders = allOrders.filter((order) => order.customer_id === customerId);
     const name = customerOrders.length ? (customerName(customerOrders[0]) || "عميل غير معروف") : "عميل غير معروف";
@@ -201,6 +211,9 @@
     document.getElementById("closeHistoryModal").addEventListener("click", () => historyModal.close());
     historyDetails.querySelectorAll("[data-history-order-id]").forEach((button) => button.addEventListener("click", () => {
       historyModal.close();
+      // Only open the full order modal if that order is in the currently
+      // loaded date range's `orders` list — otherwise there's nothing to
+      // switch to (it's still viewable inside the history list itself).
       if (orders.some((order) => order.id === button.dataset.historyOrderId)) openOrder(button.dataset.historyOrderId);
     }));
     historyModal.showModal();

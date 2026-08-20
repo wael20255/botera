@@ -1,6 +1,6 @@
 // Botera realtime bridge: one authenticated Supabase Realtime channel per page.
 // All live project pages listen for `boterarealtimechange` and refresh their own data.
-// BUILD: live-sync-20260821-ad-spend-cairo
+// BUILD: live-sync-20260819-notifications
 (function () {
   if (window.__boteraRealtimeStarted) return;
   window.__boteraRealtimeStarted = true;
@@ -11,14 +11,7 @@
   const AD_SYNC_LOCK_MS = 55 * 1000;
   const AD_SYNC_LOCK_KEY = "botera:meta-ads-live-sync";
 
-  // The dashboard/reporting dates are Cairo-local. Using UTC here makes the
-  // live Meta spend land on the previous day after midnight in Egypt.
-  const todayIso = () => new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Africa/Cairo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
+  const todayIso = () => new Date().toISOString().slice(0, 10);
 
   function acquireAdSyncLock(companyId) {
     try {
@@ -77,7 +70,6 @@
       ["orders", "company_id"],
       ["order_items", "company_id"],
       ["products", "company_id"],
-      ["campaigns", "company_id"],
       ["ad_expenses", "company_id"],
       ["shipping_expenses", "company_id"],
       ["shipping_settings", "company_id"],
