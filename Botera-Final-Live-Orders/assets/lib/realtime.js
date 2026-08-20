@@ -1,6 +1,6 @@
 // Botera realtime bridge: one authenticated Supabase Realtime channel per page.
 // All live project pages listen for `boterarealtimechange` and refresh their own data.
-// BUILD: live-sync-20260819-notifications
+// BUILD: live-sync-20260821-ad-spend
 (function () {
   if (window.__boteraRealtimeStarted) return;
   window.__boteraRealtimeStarted = true;
@@ -70,6 +70,7 @@
       ["orders", "company_id"],
       ["order_items", "company_id"],
       ["products", "company_id"],
+      ["campaigns", "company_id"],
       ["ad_expenses", "company_id"],
       ["shipping_expenses", "company_id"],
       ["shipping_settings", "company_id"],
