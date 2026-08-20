@@ -16,11 +16,11 @@
     const [ordersResult, productsResult, shippingResult, campaignsResult, adsResult] = await Promise.all([
       supabaseClient
         .from("orders")
-        .select("id,created_at,status,shipping_status,total,currency,order_items(product_id,product_name,quantity)")
+        .select("id,created_at,status,shipping_status,total,currency,product_id,cost_total,order_items(product_id,product_name,quantity)")
         .eq("company_id", profile.company_id),
       supabaseClient
         .from("products")
-        .select("id,name,cost,status,updated_at")
+        .select("id,name,price,cost,status,updated_at")
         .eq("company_id", profile.company_id)
         .eq("status", "active")
         .order("updated_at", { ascending: false }),
@@ -49,10 +49,13 @@
 
     const byId = new Map();
     const byName = new Map();
+    const byPrice = new Map();
     for (const p of productsResult.data || []) {
       byId.set(String(p.id), p);
       const n = String(p.name || "").trim().toLowerCase();
       if (n && !byName.has(n)) byName.set(n, p);
+      const price = Number(p.price);
+      if (Number.isFinite(price) && price > 0 && !byPrice.has(price)) byPrice.set(price, p);
     }
 
     const shipping = shippingResult.data?.[0] || {
@@ -66,6 +69,7 @@
       orders: ordersResult.data || [],
       productsById: byId,
       productsByName: byName,
+      productsByPrice: byPrice,
       shipping,
       campaigns: campaignsResult.data || [],
       ads: adsResult.data || [],
@@ -81,13 +85,25 @@
   }
 
   function productCostForOrder(order, data) {
-    return (order.order_items || []).reduce((sum, item) => {
-      const product = data.productsById.get(String(item.product_id || ""))
-        || data.productsByName.get(String(item.product_name || "").trim().toLowerCase());
-      const unitCost = Number(product?.cost) || 0;
-      const qty = Number(item.quantity) || 1;
-      return sum + unitCost * qty;
-    }, 0);
+    const storedCost = Number(order.cost_total);
+    if (Number.isFinite(storedCost) && storedCost > 0) return storedCost;
+
+    const items = Array.isArray(order.order_items) ? order.order_items : [];
+    if (items.length) {
+      const itemCost = items.reduce((sum, item) => {
+        const product = data.productsById.get(String(item.product_id || ""))
+          || data.productsByName.get(String(item.product_name || "").trim().toLowerCase());
+        const unitCost = Number(product?.cost) || 0;
+        const qty = Number(item.quantity) || 1;
+        return sum + unitCost * qty;
+      }, 0);
+      if (itemCost > 0) return itemCost;
+    }
+
+    // Legacy/imported orders may not have product_id/order_items/cost_total.
+    // Fall back to the exact order price against the active product catalog.
+    const byPriceProduct = data.productsByPrice.get(Number(order.total));
+    return Number(byPriceProduct?.cost) || 0;
   }
 
   function calculate(data, range) {
