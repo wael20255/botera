@@ -20,6 +20,11 @@
         const b=document.createElement('button'); b.type='button'; b.className='btn-secondary btn-sm'; b.dataset.ordersEditProxy=orderId; b.textContent='تعديل';
         b.onclick=e=>{e.stopPropagation();openDirect(orderId)}; actions.prepend(b);
       }
+      if(!actions.querySelector('[data-orders-shipped]')){
+        const b=document.createElement('button'); b.type='button'; b.className='btn-secondary btn-sm'; b.dataset.ordersShipped=orderId; b.textContent='تم الشحن';
+        b.onclick=async e=>{e.stopPropagation(); b.disabled=true; const old=b.textContent; b.textContent='جارٍ…'; try{await OrdersService.updateStatus(orderId,'shipped'); location.reload();}catch(err){b.disabled=false;b.textContent=old;alert(`تعذر تسجيل حالة «تم الشحن». ${err?.message||'حاول مرة أخرى.'}`)}};
+        actions.appendChild(b);
+      }
       if(!actions.querySelector('[data-orders-delete]')){
         const b=document.createElement('button'); b.type='button'; b.className='btn-secondary btn-sm'; b.dataset.ordersDelete=orderId; b.textContent='حذف'; b.style.borderColor='rgba(255,80,80,.35)';
         b.onclick=async e=>{e.stopPropagation(); const label=row.querySelector('[data-order-id]')?.textContent?.trim()||orderId; if(!confirm(`هل أنت متأكد من حذف الأوردر ${label}؟\nسيتم حذف الأوردر وبيانات المنتجات المرتبطة به، ولا يمكن التراجع عن العملية.`)) return; b.disabled=true; const old=b.textContent; b.textContent='جارٍ…'; try{await OrdersService.deleteOrder(orderId);location.reload();}catch(err){b.disabled=false;b.textContent=old;alert(`تعذر حذف الأوردر. ${err?.message||'حاول مرة أخرى.'}`)}};
