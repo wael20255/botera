@@ -83,59 +83,80 @@
     });
   }
 
-  function enhanceProductCells(){
+  async function enhanceProductCells(){
     const table=document.getElementById('ordersTable'); if(!table) return;
+    const targets=[];
     table.querySelectorAll('tbody tr').forEach(row=>{
       const orderId=row.querySelector('[data-order-id]')?.dataset.orderId;
       const cell=row.querySelector('.product-cell');
       if(!orderId || !cell || cell.querySelector('[data-product-picker]')) return;
+      targets.push({row,orderId,cell});
+    });
+    if(!targets.length) return;
 
-      const currentName=cell.textContent.trim();
-      const select=document.createElement('select');
-      select.dataset.productPicker='1';
-      select.className='form-input';
-      select.style.minWidth='170px';
-      select.style.cursor='pointer';
-      select.innerHTML='<option value="">اختار المنتج</option>';
-      if(currentName && currentName !== '—'){
-        const currentOption=document.createElement('option');
-        currentOption.value='__current__';
-        currentOption.textContent=currentName;
-        currentOption.selected=true;
-        select.appendChild(currentOption);
-      }
-      cell.replaceChildren(select);
+    try{
+      const [products,{data:items,error:itemError}]=await Promise.all([
+        getProducts(),
+        supabaseClient.from('order_items').select('order_id,product_id,product_name').in('order_id',targets.map(x=>x.orderId))
+      ]);
+      if(itemError) throw itemError;
 
-      getProducts().then(products=>{
-        const currentValue=select.value;
+      const firstItemByOrder=new Map();
+      (items||[]).forEach(item=>{
+        if(!firstItemByOrder.has(item.order_id)) firstItemByOrder.set(item.order_id,item);
+      });
+      const normalize=(v)=>String(v||'').trim().toLocaleLowerCase().replace(/[\s\u200f\u200e]+/g,' ');
+
+      targets.forEach(({row,orderId,cell})=>{
+        const select=document.createElement('select');
+        select.dataset.productPicker='1';
+        select.className='form-input';
+        select.style.minWidth='170px';
+        select.style.cursor='pointer';
         select.innerHTML='<option value="">اختار المنتج</option>';
-        products.filter(p=>p.status==='active').forEach(p=>{
+
+        (products||[]).forEach(p=>{
           const option=document.createElement('option');
           option.value=p.id;
-          option.textContent=p.name;
+          option.textContent=`${p.name}${p.status!=='active'?' (غير نشط)':''}`;
           select.appendChild(option);
         });
-        if(currentValue === '__current__') select.selectedIndex = 0;
-      }).catch(()=>{
-        select.innerHTML='<option value="">تعذر تحميل المنتجات</option>';
-      });
 
-      select.addEventListener('change', async (event)=>{
-        const productId=event.target.value;
-        if(!productId) return;
-        const previous=select.dataset.previousValue || '';
-        select.dataset.previousValue=productId;
-        select.disabled=true;
-        try{
-          await setOrderProduct(orderId, productId, select);
-          location.reload();
-        }catch(error){
-          select.disabled=false;
-          select.value=previous || '';
-          alert(`تعذر تحديث المنتج. ${error?.message || 'حاول مرة أخرى.'}`);
+        const item=firstItemByOrder.get(orderId);
+        let selectedProduct=null;
+        if(item?.product_id){
+          selectedProduct=(products||[]).find(p=>String(p.id)===String(item.product_id)) || null;
         }
+        if(!selectedProduct && item?.product_name){
+          const itemName=normalize(item.product_name);
+          selectedProduct=(products||[]).find(p=>normalize(p.name)===itemName) || null;
+        }
+
+        if(selectedProduct) select.value=selectedProduct.id;
+        else select.value='';
+
+        cell.replaceChildren(select);
+
+        select.addEventListener('change', async (event)=>{
+          const productId=event.target.value;
+          if(!productId) return;
+          const previous=select.dataset.previousValue || (selectedProduct?.id ? String(selectedProduct.id) : '');
+          select.dataset.previousValue=productId;
+          select.disabled=true;
+          try{
+            await setOrderProduct(orderId, productId, select);
+            location.reload();
+          }catch(error){
+            select.disabled=false;
+            select.value=previous || '';
+            alert(`تعذر تحديث المنتج. ${error?.message || 'حاول مرة أخرى.'}`);
+          }
+        });
+        row.dataset.productStateReady='1';
       });
-    });
+    }catch(error){
+      console.warn('Botera: unable to load current product selections',error);
+    }
   }
 
   function ensureRowActions(){
