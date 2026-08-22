@@ -43,9 +43,6 @@
 
   function addItem(item={}){
     const wrap=document.querySelector('#doeItems'); if(!wrap) return;
-    // Prefer the stored product_id. For imported/custom orders where product_id
-    // is null, resolve the current product by the saved product_name so the
-    // existing product is shown instead of "اختر المنتج".
     const product = state.products.find(p=>String(p.id)===String(item.product_id||''))
       || state.products.find(p=>String(p.name||'').trim()===String(item.product_name||'').trim());
     const selectedProductId = product?.id || item.product_id || '';
@@ -83,7 +80,8 @@
         const selectedCustomerId=custSel.value||null;
         const customer=state.customers.find(x=>String(x.id)===String(selectedCustomerId))||{};
         await OrdersService.saveEditor({companyId:state.profile.company_id,orderId:state.orderId,customerId:selectedCustomerId,customer:{...customer,name,phone:dlg.querySelector('#doePhone').value.trim(),address:dlg.querySelector('#doeAddress').value.trim()},order:{order_number:dlg.querySelector('#doeNumber').value.trim(),status:status.value,shipping_cost:Number(dlg.querySelector('#doeShipping').value||0),discount:Number(dlg.querySelector('#doeDiscount').value||0),customer_order_name:name},items:picked});
-        dlg.close(); location.reload();
+        dlg.close();
+        window.dispatchEvent(new CustomEvent('boterarealtimechange'));
       }catch(e){btn.disabled=false;btn.textContent=order?'حفظ التعديلات':'إضافة الأوردر';err.textContent=e?.message||'تعذر حفظ الأوردر.';err.style.display='block';}
     };
     dlg.showModal();
