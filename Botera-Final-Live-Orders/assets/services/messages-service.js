@@ -7,20 +7,32 @@
 //   conversations.last_message_at
 const MessagesService = (function () {
   async function listCompany(companyId) {
-    const { data: conversations, error: conversationError } = await supabaseClient
-      .from("conversations")
-      .select("id")
-      .eq("company_id", companyId);
-    if (conversationError) throw conversationError;
-    const ids = (conversations || []).map((x) => x.id).filter(Boolean);
-    if (!ids.length) return [];
-    const { data, error } = await supabaseClient
-      .from("messages")
-      .select("id,conversation_id,sender,message,created_at")
-      .in("conversation_id", ids)
-      .order("created_at", { ascending: true });
-    if (error) throw error;
-    return data || [];
+    const pageSize = 1000;
+    let from = 0;
+    const all = [];
+
+    // Fetch messages through the company-scoped conversation relation instead
+    // of building a huge `in(conversation_id, [...])` list. The previous
+    // approach could fail for companies with tens of thousands of conversations,
+    // causing the dashboard's optional message dataset to fall back to [].
+    while (true) {
+      const { data, error } = await supabaseClient
+        .from("messages")
+        .select("id,conversation_id,sender,message,created_at,conversations!inner(company_id)")
+        .eq("conversations.company_id", companyId)
+        .order("created_at", { ascending: true })
+        .range(from, from + pageSize - 1);
+
+      if (error) throw error;
+
+      const page = data || [];
+      all.push(...page.map(({ conversations, ...message }) => message));
+
+      if (page.length < pageSize) break;
+      from += pageSize;
+    }
+
+    return all;
   }
 
   async function list(conversationId) {
