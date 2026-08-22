@@ -43,9 +43,14 @@
 
   function addItem(item={}){
     const wrap=document.querySelector('#doeItems'); if(!wrap) return;
-    const product=state.products.find(p=>String(p.id)===String(item.product_id||''));
+    // Prefer the stored product_id. For imported/custom orders where product_id
+    // is null, resolve the current product by the saved product_name so the
+    // existing product is shown instead of "اختر المنتج".
+    const product = state.products.find(p=>String(p.id)===String(item.product_id||''))
+      || state.products.find(p=>String(p.name||'').trim()===String(item.product_name||'').trim());
+    const selectedProductId = product?.id || item.product_id || '';
     const row=document.createElement('div'); row.className='doe-item'; row.dataset.itemRow='1';
-    row.innerHTML=`<div class="doe-field doe-product"><label>المنتج</label><select data-product>${productOptions(item.product_id||'')}</select><div class="doe-note" data-info>${product?`السعر: ${money(product.price)} · التكلفة: ${money(product.cost)}`:''}</div></div><div class="doe-field"><label>الكمية</label><input data-qty type="number" min="1" step="1" value="${Math.max(1,Number(item.quantity||1))}"></div><div class="doe-field"><label>السعر</label><input data-price type="number" readonly value="${Number(item.price ?? product?.price ?? 0)}"></div><button type="button" class="btn-secondary" data-remove>حذف</button>`;
+    row.innerHTML=`<div class="doe-field doe-product"><label>المنتج</label><select data-product>${productOptions(selectedProductId)}</select><div class="doe-note" data-info>${product?`السعر: ${money(product.price)} · التكلفة: ${money(product.cost)}`:''}</div></div><div class="doe-field"><label>الكمية</label><input data-qty type="number" min="1" step="1" value="${Math.max(1,Number(item.quantity||1))}"></div><div class="doe-field"><label>السعر</label><input data-price type="number" readonly value="${Number(item.price ?? product?.price ?? 0)}"></div><button type="button" class="btn-secondary" data-remove>حذف</button>`;
     row.querySelector('[data-product]').addEventListener('change',()=>{
       const p=state.products.find(x=>String(x.id)===String(row.querySelector('[data-product]').value));
       if(!p) return; row.querySelector('[data-price]').value=Number(p.price||0); row.querySelector('[data-info]').textContent=`السعر: ${money(p.price)} · التكلفة: ${money(p.cost)}`;
