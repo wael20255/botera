@@ -25,11 +25,12 @@ const TeamService = (function () {
     if (error) throw error;
   }
 
-  async function invite({ fullName, email, password, roleId, permissions }) {
+  async function invite({ fullName, email, password, roleId, roleName, permissions }) {
     const selectedRoleId = roleId || document.getElementById("memberRole")?.value || "";
-    if (!selectedRoleId) throw new Error("من فضلك اختر الوظيفة.");
+    const selectedRoleName = roleName || document.getElementById("memberRole")?.selectedOptions?.[0]?.dataset?.roleName || "";
+    if (!selectedRoleId && !selectedRoleName) throw new Error("من فضلك اختر الوظيفة.");
     const { data, error } = await supabaseClient.functions.invoke("create-team-member", {
-      body: { full_name: fullName, email, password, role_id: selectedRoleId, permissions },
+      body: { full_name: fullName, email, password, role_id: selectedRoleId || null, role_name: selectedRoleName || null, permissions },
     });
     if (error) {
       let detail = null;
