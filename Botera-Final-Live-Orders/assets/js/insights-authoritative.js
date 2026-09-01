@@ -69,7 +69,6 @@
     const adSpend = adSpendForRange(campaigns, ads, range);
     const orderCount = inRange.length;
     const deliveryCount = delivered.length;
-    const totalSales = sum(inRange, "total");
     const revenue = sum(delivered, "total");
 
     const deliveredProductCost = delivered.reduce(
@@ -80,13 +79,12 @@
     const beforeShipping = orderCount ? adSpend / orderCount : 0;
     const afterShipping = deliveryCount ? adSpend / deliveryCount : 0;
     const profit = revenue - (afterShipping * deliveryCount) - deliveredProductCost;
-    const aov = orderCount ? totalSales / orderCount : 0;
+    const aov = deliveryCount ? revenue / deliveryCount : 0;
 
     return {
       orders: orderCount,
       deliveries: deliveryCount,
       adSpend,
-      totalSales,
       revenue,
       beforeShipping,
       afterShipping,
@@ -106,7 +104,6 @@
     ];
     const restCards = [
       "الإيراد",
-      "إجمالي المبيعات",
       "عدد الأوردرات",
       "التسليمات",
       "تكلفة الأوردر بعد الشحن",
@@ -267,7 +264,6 @@
       const currency = data.orders.find((o) => o.currency)?.currency || profile.company?.currency || "EGP";
 
       setMetric("الإيراد", current.revenue, currency, previous.revenue);
-      setMetric("إجمالي المبيعات", current.totalSales, currency, previous.totalSales);
       setMetric("صرف الإعلانات", current.adSpend, currency, previous.adSpend);
       setCountMetric("عدد الأوردرات", current.orders, previous.orders);
       setCountMetric("التسليمات", current.deliveries, previous.deliveries);
