@@ -11,7 +11,7 @@
   ];
 
   let installedForForm = null;
-  let inviteWrapped = false;
+  let submitBoundForForm = null;
 
   function installRoleField(form) {
     if (!form || installedForForm === form || form.querySelector("#memberRole")) return;
@@ -31,26 +31,103 @@
     installedForForm = form;
   }
 
-  function wrapInvite() {
-    if (inviteWrapped || !window.TeamService?.invite) return;
-    const originalInvite = window.TeamService.invite;
-    window.TeamService.invite = async function ({ fullName, email, password, permissions }) {
-      const roleEl = document.getElementById("memberRole");
-      const roleId = roleEl?.value || "";
-      if (!roleId) throw new Error("من فضلك اختر الوظيفة.");
-      return originalInvite.call(this, { fullName, email, password, permissions, roleId });
-    };
-    inviteWrapped = true;
+  function bindDirectSubmit(form) {
+    if (!form || submitBoundForForm === form) return;
+    submitBoundForForm = form;
+
+    form.addEventListener("submit", async (event) => {
+      // settings.js has its own submit handler, but it does not know about the
+      // dynamically-added role selector. Handle the submit here first so the
+      // selected role_id is always sent to the Edge Function.
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      const fullName = document.getElementById("memberName")?.value.trim() || "";
+      const email = document.getElementById("memberEmail")?.value.trim() || "";
+      const password = document.getElementById("memberPassword")?.value || "";
+      const roleId = document.getElementById("memberRole")?.value || "";
+      const errorEl = document.getElementById("addMemberError");
+      const submit = document.getElementById("addMemberSubmit");
+      const permissions = {};
+
+      form.querySelectorAll('input[name="newMemberPerm"]').forEach((input) => {
+        permissions[input.value] = input.checked;
+      });
+
+      const showError = (message) => {
+        if (errorEl) {
+          errorEl.textContent = message;
+          errorEl.style.display = "block";
+        }
+      };
+
+      if (!fullName || !email) {
+        showError("من فضلك أكمل الاسم والإيميل.");
+        return;
+      }
+      if (password.length < 8) {
+        showError("كلمة السر لازم تكون 8 أحرف على الأقل.");
+        return;
+      }
+      if (!roleId) {
+        showError("من فضلك اختر الوظيفة.");
+        return;
+      }
+
+      if (submit) {
+        submit.disabled = true;
+        submit.textContent = "جارٍ الإضافة…";
+      }
+      if (errorEl) errorEl.style.display = "none";
+
+      try {
+        const { data, error } = await supabaseClient.functions.invoke("create-team-member", {
+          body: {
+            full_name: fullName,
+            email,
+            password,
+            role_id: roleId,
+            permissions,
+          },
+        });
+
+        if (error) {
+          let detail = null;
+          try { detail = (await error.context?.json?.())?.error; } catch (_) {}
+          throw new Error(detail || data?.error || error.message || "تعذر إضافة العضو.");
+        }
+        if (data?.error) throw new Error(data.error);
+
+        form.reset();
+        if (errorEl) {
+          errorEl.textContent = "تمت إضافة العضو بنجاح ✓";
+          errorEl.style.display = "block";
+          errorEl.style.color = "var(--color-neon, #39ff75)";
+        }
+        if (submit) {
+          submit.textContent = "تمت الإضافة ✓";
+        }
+
+        // Refresh only the team section after a successful add.
+        setTimeout(() => window.location.reload(), 500);
+      } catch (error) {
+        showError(error?.message || "تعذر إضافة العضو.");
+        if (submit) {
+          submit.disabled = false;
+          submit.textContent = "إضافة عضو";
+        }
+      }
+    }, true);
   }
 
-  const observer = new MutationObserver(() => {
+  function install() {
     const form = document.getElementById("addMemberForm");
-    if (form) installRoleField(form);
-    wrapInvite();
-  });
+    if (!form) return;
+    installRoleField(form);
+    bindDirectSubmit(form);
+  }
 
+  const observer = new MutationObserver(install);
   observer.observe(document.body, { childList: true, subtree: true });
-  const initialForm = document.getElementById("addMemberForm");
-  if (initialForm) installRoleField(initialForm);
-  wrapInvite();
+  install();
 })();
