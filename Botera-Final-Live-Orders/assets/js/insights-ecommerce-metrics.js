@@ -98,6 +98,7 @@
     const ordersCount = orders.length;
     const deliveryCount = delivered.length;
     const returnCount = returned.length;
+    const totalSales = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     const revenue = delivered.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     const ad = adSpend(data, range);
 
@@ -123,6 +124,7 @@
       ordersCount,
       deliveryCount,
       returnCount,
+      totalSales,
       revenue,
       ad,
       productCost,
@@ -149,6 +151,7 @@
       </div>
       <div class="insights-kpi-rest">
         <article class="card kpi-card metric-card"><span class="kpi-label">الإيرادات</span><strong class="kpi-value" data-kpi="revenue">—</strong><div class="kpi-delta"></div></article>
+        <article class="card kpi-card metric-card"><span class="kpi-label">إجمالي المبيعات</span><strong class="kpi-value" data-kpi="totalSales">—</strong><div class="kpi-delta"></div></article>
         <article class="card kpi-card metric-card"><span class="kpi-label">عدد الأوردرات</span><strong class="kpi-value" data-kpi="orders">—</strong><div class="kpi-delta"></div></article>
         <article class="card kpi-card metric-card"><span class="kpi-label">التسليمات</span><strong class="kpi-value" data-kpi="deliveries">—</strong><div class="kpi-delta"></div></article>
         <article class="card kpi-card metric-card"><span class="kpi-label">المرتجعات</span><strong class="kpi-value" data-kpi="returns">—</strong><div class="kpi-delta"></div></article>
@@ -168,6 +171,7 @@
       ad: current.ad,
       profit: current.profit,
       revenue: current.revenue,
+      totalSales: current.totalSales,
       adPerOrder: current.adPerOrder,
       adPerDelivery: current.adPerDelivery,
       productPerDelivery: current.productPerDelivery,
