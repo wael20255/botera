@@ -26,9 +26,10 @@ const TeamService = (function () {
   }
 
   async function invite({ fullName, email, password, roleId, permissions }) {
-    if (!roleId) throw new Error("من فضلك اختر الوظيفة.");
+    const selectedRoleId = roleId || document.getElementById("memberRole")?.value || "";
+    if (!selectedRoleId) throw new Error("من فضلك اختر الوظيفة.");
     const { data, error } = await supabaseClient.functions.invoke("create-team-member", {
-      body: { full_name: fullName, email, password, role_id: roleId, permissions },
+      body: { full_name: fullName, email, password, role_id: selectedRoleId, permissions },
     });
     if (error) {
       let detail = null;
