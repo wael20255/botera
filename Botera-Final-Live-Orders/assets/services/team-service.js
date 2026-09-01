@@ -17,7 +17,6 @@ const TeamService = (function () {
     return data;
   }
 
-  // permissions: any subset of the can_view_*/can_manage_team booleans.
   async function updatePermissions(memberId, permissions) {
     const { error } = await supabaseClient
       .from("profiles")
@@ -26,17 +25,12 @@ const TeamService = (function () {
     if (error) throw error;
   }
 
-  // { fullName, email, password, permissions } -> creates the auth login
-  // + their profile row, in the caller's own company.
-  async function invite({ fullName, email, password, permissions }) {
+  async function invite({ fullName, email, password, roleId, permissions }) {
+    if (!roleId) throw new Error("من فضلك اختر الوظيفة.");
     const { data, error } = await supabaseClient.functions.invoke("create-team-member", {
-      body: { full_name: fullName, email, password, permissions },
+      body: { full_name: fullName, email, password, role_id: roleId, permissions },
     });
     if (error) {
-      // supabase-js surfaces a FunctionsHttpError whose real message is
-      // inside the response body, not error.message — read it back out so
-      // the person sees the actual reason ("already registered", etc.)
-      // instead of a generic "Edge Function returned a non-2xx status".
       let detail = null;
       try { detail = (await error.context?.json?.())?.error; } catch { /* ignore */ }
       throw new Error(detail || data?.error || error.message || "تعذر إضافة العضو.");
