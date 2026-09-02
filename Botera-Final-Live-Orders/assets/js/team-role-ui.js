@@ -1,4 +1,4 @@
-// Team-only enhancement: add a job selector to the existing team-member form.
+// Team-only enhancement: add a job selector and member management controls to the existing team UI.
 // The permissions checkboxes remain completely independent.
 (function () {
   const ROLES = [
@@ -12,6 +12,7 @@
 
   let installedForForm = null;
   let inviteWrapped = false;
+  const enhancedRows = new WeakSet();
 
   function installRoleField(form) {
     if (!form || installedForForm === form || form.querySelector("#memberRole")) return;
@@ -44,14 +45,114 @@
     inviteWrapped = true;
   }
 
+  async function manageMember(memberId, action) {
+    const { data, error } = await supabaseClient.functions.invoke("manage-team-member", {
+      body: { member_id: memberId, action },
+    });
+    if (error) {
+      let message = error.message || "تعذر تنفيذ العملية.";
+      try {
+        const body = await error.context?.json?.();
+        message = body?.error || body?.details || message;
+      } catch (_) {}
+      throw new Error(message);
+    }
+    if (data?.error) throw new Error(data.error);
+    return data;
+  }
+
+  async function installMemberControls(row) {
+    if (!row || enhancedRows.has(row)) return;
+    const saveButton = row.querySelector("[data-save-member]");
+    if (!saveButton) return; // owner row or an unexpected row
+    const memberId = saveButton.dataset.saveMember;
+    const actionCell = saveButton.closest("td");
+    if (!memberId || !actionCell || actionCell.querySelector("[data-member-delete]")) return;
+
+    enhancedRows.add(row);
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "btn-secondary";
+    deleteButton.type = "button";
+    deleteButton.dataset.memberDelete = memberId;
+    deleteButton.textContent = "حذف";
+    deleteButton.style.marginInlineStart = "6px";
+
+    const toggleButton = document.createElement("button");
+    toggleButton.className = "btn-secondary";
+    toggleButton.type = "button";
+    toggleButton.dataset.memberToggle = memberId;
+    toggleButton.textContent = "...";
+    toggleButton.style.marginInlineStart = "6px";
+
+    actionCell.append(deleteButton, toggleButton);
+
+    try {
+      const { data, error } = await supabaseClient
+        .from("profiles")
+        .select("is_active")
+        .eq("id", memberId)
+        .single();
+      if (error) throw error;
+      toggleButton.textContent = data?.is_active ? "إيقاف" : "تشغيل";
+      toggleButton.dataset.active = data?.is_active ? "1" : "0";
+    } catch (_) {
+      toggleButton.textContent = "تشغيل / إيقاف";
+    }
+
+    deleteButton.addEventListener("click", async () => {
+      if (!confirm("هل تريد حذف هذا العضو نهائيًا؟")) return;
+      deleteButton.disabled = true;
+      toggleButton.disabled = true;
+      const original = deleteButton.textContent;
+      deleteButton.textContent = "جارٍ الحذف…";
+      try {
+        await manageMember(memberId, "delete");
+        row.remove();
+      } catch (error) {
+        deleteButton.disabled = false;
+        toggleButton.disabled = false;
+        deleteButton.textContent = original;
+        alert(error.message || "تعذر حذف العضو.");
+      }
+    });
+
+    toggleButton.addEventListener("click", async () => {
+      toggleButton.disabled = true;
+      deleteButton.disabled = true;
+      const original = toggleButton.textContent;
+      toggleButton.textContent = "جارٍ التغيير…";
+      try {
+        const result = await manageMember(memberId, "toggle");
+        const active = !!result?.is_active;
+        toggleButton.textContent = active ? "إيقاف" : "تشغيل";
+        toggleButton.dataset.active = active ? "1" : "0";
+      } catch (error) {
+        toggleButton.textContent = original;
+        alert(error.message || "تعذر تغيير حالة العضو.");
+      } finally {
+        toggleButton.disabled = false;
+        deleteButton.disabled = false;
+      }
+    });
+  }
+
+  function installMemberControlsOnPage() {
+    document.querySelectorAll("#teamTab tbody tr[data-member-row]").forEach((row) => {
+      void installMemberControls(row);
+    });
+  }
+
   const observer = new MutationObserver(() => {
     const form = document.getElementById("addMemberForm");
     if (form) installRoleField(form);
     wrapInvite();
+    installMemberControlsOnPage();
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
   const initialForm = document.getElementById("addMemberForm");
   if (initialForm) installRoleField(initialForm);
   wrapInvite();
+  installMemberControlsOnPage();
 })();
