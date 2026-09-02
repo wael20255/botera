@@ -88,6 +88,7 @@
       <div class="insights-kpi-rest">
         <article class="card kpi-card metric-card"><span class="kpi-label">الإيرادات</span><strong class="kpi-value" data-kpi="revenue">—</strong><div class="kpi-delta"></div></article>
         <article class="card kpi-card metric-card"><span class="kpi-label">إجمالي المبيعات</span><strong class="kpi-value" data-kpi="totalSales">—</strong><div class="kpi-delta"></div></article>
+        <article class="card kpi-card metric-card"><span class="kpi-label">متوسط قيمة الطلب</span><strong class="kpi-value" data-kpi="aov">—</strong><div class="kpi-delta"></div></article>
         <article class="card kpi-card metric-card"><span class="kpi-label">عدد الأوردرات</span><strong class="kpi-value" data-kpi="orders">—</strong><div class="kpi-delta"></div></article>
         <article class="card kpi-card metric-card"><span class="kpi-label">التسليمات</span><strong class="kpi-value" data-kpi="deliveries">—</strong><div class="kpi-delta"></div></article>
         <article class="card kpi-card metric-card"><span class="kpi-label">المرتجعات</span><strong class="kpi-value" data-kpi="returns">—</strong><div class="kpi-delta"></div></article>
@@ -97,7 +98,6 @@
         <article class="card kpi-card metric-card"><span class="kpi-label">متوسط الشحن للتسليم</span><strong class="kpi-value" data-kpi="shippingPerDelivery">—</strong><div class="kpi-delta"></div></article>
         <article class="card kpi-card metric-card"><span class="kpi-label">تكلفة تنفيذ الأوردر المسلم</span><strong class="kpi-value" data-kpi="execution">—</strong><div class="kpi-delta"></div></article>
         <article class="card kpi-card metric-card"><span class="kpi-label">إجمالي تكلفة الأوردر المسلم</span><strong class="kpi-value" data-kpi="fullCost">—</strong><div class="kpi-delta"></div></article>
-        <article class="card kpi-card metric-card"><span class="kpi-label">متوسط قيمة الطلب</span><strong class="kpi-value" data-kpi="aov">—</strong><div class="kpi-delta"></div></article>
       </div>`;
   }
 
