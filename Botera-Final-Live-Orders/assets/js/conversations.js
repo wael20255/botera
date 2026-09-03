@@ -17,37 +17,20 @@ const CHANNEL_COLORS = {
   tiktok: "linear-gradient(135deg,#25F4EE,#FE2C55)",
 };
 
-// Reads the message's text content defensively: the app's own schema
-// (types/index.js) documents the column as `body`, but if the live
-// `messages` table actually uses a different column name (e.g. `text` /
-// `content` / `message`), this still finds it instead of rendering a blank
-// bubble with only a timestamp.
-// messages.message is the confirmed real text column (verified directly
-// against the live database) — the other keys stay as a fallback only in
-// case a differently-shaped row ever comes from somewhere else.
 function messageBody(message) {
   return message.message ?? message.body ?? message.text ?? message.content ?? "";
 }
 
-// Turns a Supabase/PostgREST error into a readable string instead of
-// swallowing it — surfacing the real reason (RLS violation, missing
-// column, failed check constraint...) is what actually lets a failed send
-// get diagnosed, rather than showing a generic "تعذر" every time.
 function supabaseErrorText(error) {
   return error?.message || error?.error_description || error?.hint || "خطأ غير معروف";
 }
 
-// Reads a message's attachment defensively, the same way messageBody()
-// reads its text: checks the columns this app's own migration adds
-// (attachment_url/attachment_type) plus a few common alternates, in case a
-// message arrived through an integration using different column names.
 function messageAttachment(message) {
   const rawAttachment = typeof message.attachment === "string" && /^https?:\/\//i.test(message.attachment) ? message.attachment : null;
   const url = message.attachment_url ?? rawAttachment ?? message.media_url ?? message.image_url ?? message.audio_url ?? message.file_url ?? null;
   if (!url) return null;
   let type = message.attachment_type ?? message.media_type ?? message.type ?? null;
   if (!["image", "audio", "file"].includes(type)) {
-    // No usable type column — guess from the URL's file extension instead.
     const ext = (String(url).split("?")[0].split(".").pop() || "").toLowerCase();
     if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) type = "image";
     else if (["mp3", "ogg", "wav", "m4a", "opus", "webm", "aac"].includes(ext)) type = "audio";
@@ -71,9 +54,6 @@ function channelColor(channel) {
   return CHANNEL_COLORS[channel] || "var(--color-surface-2)";
 }
 
-// Decides what to show as the chat's name: the account name for social
-// channels, the phone number for WhatsApp — with a graceful fallback if the
-// preferred field is missing.
 function chatIdentity(conversation) {
   const customer = conversation.customers || {};
   const channel = conversation.channel || customer.channel || "";
@@ -81,9 +61,6 @@ function chatIdentity(conversation) {
   const primary = isWhatsapp
     ? (customer.phone || customer.name || "رقم غير معروف")
     : (customer.name || customer.phone || "عميل غير معروف");
-  // Only show phone as a secondary line when the primary is actually the
-  // account name — otherwise (no name on file) primary already IS the
-  // phone, and showing it again underneath would just duplicate it.
   const secondary = !isWhatsapp && customer.name && customer.phone ? customer.phone : null;
   return { channel, primary, secondary, isWhatsapp };
 }
@@ -98,8 +75,6 @@ function avatarHtml(identity) {
   return `<span class="conversation-avatar" style="${style}">${letter}</span>`;
 }
 
-// Wraps the first case-insensitive match of `term` inside `text` in a
-// <mark> so matches are visible in the list, while still escaping the rest.
 function highlightMatch(text, term) {
   const safeText = escapeHtml(text ?? "");
   if (!term) return safeText;
@@ -117,16 +92,13 @@ function highlightMatch(text, term) {
   DateRange.init();
 
   let allConversations = [];
-  let conversations = []; // date-range filtered
+  let conversations = [];
   let selectedId = null;
   let activeChannel = "all";
   let searchTerm = "";
   let messageMatchIds = new Set();
   let searchGeneration = 0;
   let searchDebounceTimer = null;
-  // Customers page links here as conversations.html?customer=<id> so
-  // clicking a customer opens their chat directly. Handled once — after
-  // that this stays irrelevant even as the date range keeps reloading data.
   const requestedCustomerId = new URLSearchParams(window.location.search).get("customer");
   let autoOpenedFromQuery = false;
 
@@ -226,8 +198,8 @@ function highlightMatch(text, term) {
         <form class="reply-form" id="replyForm">
           <div class="reply-attachment-preview" id="replyAttachmentPreview" style="display:none;"></div>
           <div class="reply-row">
-            <input type="file" id="replyFileInput" accept="image/*,audio/*" hidden>
-            <button type="button" class="icon-btn" id="attachBtn" title="إرفاق صورة أو ملف صوتي">📎</button>
+            <input type="file" id="replyFileInput" accept="*/*" hidden>
+            <button type="button" class="icon-btn" id="attachBtn" title="إرفاق صورة أو ملف">📎</button>
             <button type="button" class="icon-btn" id="recordBtn" title="تسجيل رسالة صوتية">🎙️</button>
             <label class="sr-only" for="replyBody">الرد</label>
             <textarea class="form-input" id="replyBody" placeholder="اكتب ردك هنا"></textarea>
@@ -236,7 +208,6 @@ function highlightMatch(text, term) {
           <p class="error-message" id="replyError"></p>
         </form>`;
 
-      // --- attach / record wiring ---------------------------------------
       let pendingFile = null;
       let mediaRecorder = null;
       let recordedChunks = [];
@@ -300,7 +271,7 @@ function highlightMatch(text, term) {
         errorBox.textContent = "";
         const text = input.value.trim();
         if (!text && !pendingFile) {
-          errorBox.textContent = "اكتب رسالة أو أرفق صورة/تسجيل صوتي أولاً.";
+          errorBox.textContent = "اكتب رسالة أو أرفق ملف أولاً.";
           return;
         }
         submitBtn.disabled = true;
@@ -325,22 +296,26 @@ function highlightMatch(text, term) {
           recordBtn.disabled = false;
         }
       });
+
+      document.getElementById("replyBody").addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+          event.preventDefault();
+          document.getElementById("replyForm\").requestSubmit();
+        }
+      });
     } catch (error) {
       console.error("MessagesService.list failed:", error);
       thread.innerHTML = errorState("تعذر تحميل الرسائل", supabaseErrorText(error));
     }
   }
 
-  // Runs the "search inside messages" query against Supabase, scoped to the
-  // conversations currently in view (their ids), and guards against a
-  // slower older request overwriting a newer one's results.
   async function runMessageSearch(term) {
     const generation = ++searchGeneration;
     searchStatus.textContent = "جاري البحث داخل الرسائل…";
     try {
       const ids = conversations.map((c) => c.id);
       const matches = await ConversationsService.searchMessageMatches(ids, term);
-      if (generation !== searchGeneration || term !== searchTerm) return; // superseded by a newer search
+      if (generation !== searchGeneration || term !== searchTerm) return;
       messageMatchIds = new Set(matches);
       searchStatus.textContent = "";
       renderFilters(); renderList();
