@@ -7,7 +7,6 @@
     orders: "عدد الأوردرات",
     revenue: "الإيرادات",
     profit: "صافي الربح",
-    aov: "متوسط قيمة الطلب",
   };
 
   function cardByLabel(text) {
@@ -20,18 +19,14 @@
     const root = document.querySelector(rootSelector);
     if (!root) return false;
 
-    const aov = cardByLabel(labels.aov);
-    if (aov) aov.remove();
-
     const ad = cardByLabel(labels.ad);
     const orders = cardByLabel(labels.orders);
     const revenue = cardByLabel(labels.revenue);
     const profit = cardByLabel(labels.profit);
     if (!ad || !orders || !revenue || !profit) return false;
 
-    const remaining = [...root.querySelectorAll(".metric-card")].filter(
-      (card) => ![ad, orders, revenue, profit].includes(card)
-    );
+    const primary = new Set([ad, orders, revenue, profit]);
+    const remaining = [...root.querySelectorAll(".metric-card")].filter((card) => !primary.has(card));
 
     const top = document.createElement("div");
     top.className = "insights-kpi-hero insights-kpi-primary";
