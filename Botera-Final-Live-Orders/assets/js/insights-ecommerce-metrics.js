@@ -125,11 +125,48 @@
     const total = revenueSeries.reduce((s, v) => s + v, 0);
     if (!total) { root.innerHTML = "<div class='empty-state'><strong>لا توجد بيانات كافية لعرض النمو</strong></div>"; return; }
     root.innerHTML = "<canvas></canvas>";
-    const css = getComputedStyle(document.documentElement);
-    window.__boteraAuthoritativeInsightsChart = new Chart(root.querySelector("canvas"), { type: "line", data: { labels: buckets.map((b) => b.label), datasets: [
-      { label: "الإيرادات", data: revenueSeries, borderColor: css.getPropertyValue("--color-chart-teal").trim(), backgroundColor: css.getPropertyValue("--color-chart-teal-fill").trim(), fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 },
-      { label: "صافي الربح", data: profitSeries, borderColor: css.getPropertyValue("--color-neon").trim(), backgroundColor: css.getPropertyValue("--color-neon-10").trim(), fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2 },
-    ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: css.getPropertyValue("--color-text").trim() } }, tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${money(c.parsed.y, currency)}` } } }, scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8, color: css.getPropertyValue("--color-text-faint").trim() } }, y: { grid: { color: css.getPropertyValue("--color-border").trim() }, ticks: { color: css.getPropertyValue("--color-text-faint").trim() } } } } });
+    const ctx = root.querySelector("canvas").getContext("2d");
+    const revenueGradient = ctx.createLinearGradient(0, 0, 0, 360);
+    revenueGradient.addColorStop(0, "rgba(79,70,229,.28)");
+    revenueGradient.addColorStop(1, "rgba(79,70,229,0)");
+    const profitGradient = ctx.createLinearGradient(0, 0, 0, 360);
+    profitGradient.addColorStop(0, "rgba(16,185,129,.22)");
+    profitGradient.addColorStop(1, "rgba(16,185,129,0)");
+    window.__boteraAuthoritativeInsightsChart = new Chart(root.querySelector("canvas"), {
+      type: "line",
+      data: {
+        labels: buckets.map((b) => b.label),
+        datasets: [
+          { label: "الإيرادات", data: revenueSeries, borderColor: "#6366f1", backgroundColor: revenueGradient, fill: true, tension: 0.42, pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 3, borderWidth: 2.5 },
+          { label: "صافي الربح", data: profitSeries, borderColor: "#10b981", backgroundColor: profitGradient, fill: true, tension: 0.42, pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 3, borderWidth: 2.5 },
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        animation: { duration: 650, easing: "easeOutQuart" },
+        layout: { padding: { top: 12, right: 8, bottom: 4, left: 8 } },
+        plugins: {
+          legend: { position: "top", align: "end", labels: { usePointStyle: true, pointStyle: "circle", padding: 18, color: "rgba(239,241,255,.82)", font: { size: 12, weight: "700" } } },
+          tooltip: {
+            displayColors: true,
+            backgroundColor: "rgba(7,11,30,.96)",
+            titleColor: "#fff",
+            bodyColor: "rgba(239,241,255,.9)",
+            borderColor: "rgba(124,105,255,.35)",
+            borderWidth: 1,
+            padding: 12,
+            cornerRadius: 12,
+            callbacks: { label: (c) => ` ${c.dataset.label}: ${money(c.parsed.y, currency)}` }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 8, color: "rgba(203,207,230,.55)", padding: 8, font: { size: 11, weight: "600" } } },
+          y: { grid: { color: "rgba(139,147,180,.10)" }, border: { display: false }, ticks: { color: "rgba(203,207,230,.55)", padding: 8, maxTicksLimit: 6, font: { size: 11, weight: "600" }, callback: (value) => new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(value) } }
+        }
+      }
+    });
   }
 
   async function render() {
