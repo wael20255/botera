@@ -1,104 +1,14 @@
 /* Conversations media-only enhancement. Keeps the original Conversations layout untouched. */
 (function () {
   if (document.body?.dataset?.page !== "conversations") return;
-
-  function esc(value) {
-    return typeof escapeHtml === "function"
-      ? escapeHtml(value)
-      : String(value ?? "").replace(/[&<>\"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;", "'":"&#39;" }[c]));
-  }
-
-  function injectStyles() {
-    if (document.getElementById("botera-conversations-media-style")) return;
-    const style = document.createElement("style");
-    style.id = "botera-conversations-media-style";
-    style.textContent = `
-      body[data-page="conversations"] .message-image-link{display:block;max-width:380px;border-radius:12px;overflow:hidden;cursor:zoom-in;background:#111;}
-      body[data-page="conversations"] .message-image{display:block;max-width:100%;max-height:380px;width:auto;height:auto;object-fit:contain;}
-      body[data-page="conversations"] .message-sticker{max-width:190px!important;max-height:190px!important;object-fit:contain;background:transparent;}
-      body[data-page="conversations"] .message-video{display:block;width:min(380px,75vw);max-height:380px;border-radius:12px;background:#000;}
-      body[data-page="conversations"] .message-media-wrap{max-width:380px;}
-      body[data-page="conversations"] .conversation-media-lightbox{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.9);padding:24px;cursor:zoom-out;}
-      body[data-page="conversations"] .conversation-media-lightbox img{max-width:94vw;max-height:90vh;object-fit:contain;border-radius:14px;box-shadow:0 20px 80px rgba(0,0,0,.5);}
-      body[data-page="conversations"] .conversation-media-lightbox-close{position:absolute;top:18px;inset-inline-end:22px;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:#10151e;color:#fff;font-size:26px;cursor:pointer;}
-    `;
-    document.head.appendChild(style);
-  }
-
-  function enhanceMessageMedia() {
-    const thread = document.getElementById("conversationThread");
-    if (!thread) return;
-
-    thread.querySelectorAll("a.message-file").forEach((link) => {
-      if (link.dataset.mediaEnhanced === "1") return;
-      const href = link.getAttribute("href") || "";
-      const ext = (href.split("?")[0].split(".").pop() || "").toLowerCase();
-      if (!["mp4","webm","mov","m4v"].includes(ext)) return;
-
-      const video = document.createElement("video");
-      video.className = "message-video";
-      video.controls = true;
-      video.preload = "metadata";
-      video.src = href;
-      video.setAttribute("playsinline", "");
-
-      const wrap = document.createElement("div");
-      wrap.className = "message-media-wrap";
-      wrap.dataset.mediaEnhanced = "1";
-      wrap.appendChild(video);
-      link.replaceWith(wrap);
-    });
-
-    thread.querySelectorAll(".message-image-link").forEach((link) => {
-      if (link.dataset.lightboxBound === "1") return;
-      link.dataset.lightboxBound = "1";
-      link.addEventListener("click", (event) => {
-        if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-        event.preventDefault();
-        const img = link.querySelector("img");
-        const src = img?.currentSrc || img?.src || link.getAttribute("href");
-        if (!src) return;
-
-        const overlay = document.createElement("div");
-        overlay.className = "conversation-media-lightbox";
-        overlay.innerHTML = `<button type="button" class="conversation-media-lightbox-close" aria-label="إغلاق">×</button><img src="${esc(src)}" alt="مرفق">`;
-        const close = () => {
-          overlay.remove();
-          document.removeEventListener("keydown", onKey);
-        };
-        const onKey = (e) => { if (e.key === "Escape") close(); };
-        overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
-        overlay.querySelector(".conversation-media-lightbox-close")?.addEventListener("click", close);
-        document.addEventListener("keydown", onKey);
-        document.body.appendChild(overlay);
-      });
-    });
-
-    thread.querySelectorAll(".message-file").forEach((link) => {
-      const href = link.getAttribute("href") || "";
-      const ext = (href.split("?")[0].split(".").pop() || "").toLowerCase();
-      if (!["mp4","webm","mov","m4v"].includes(ext)) return;
-      if (link.dataset.mediaEnhanced === "1") return;
-    });
-  }
-
-  function unlockAllFileSelection() {
-    const input = document.getElementById("replyFileInput");
-    if (!input) return;
-    input.accept = "*/*";
-    input.removeAttribute("capture");
-  }
-
-  function run() {
-    injectStyles();
-    unlockAllFileSelection();
-    enhanceMessageMedia();
-  }
-
-  const thread = document.getElementById("conversationThread");
-  if (thread && typeof MutationObserver !== "undefined") {
-    new MutationObserver(() => requestAnimationFrame(run)).observe(thread, { childList: true, subtree: true });
-  }
-  window.addEventListener("load", () => setTimeout(run, 250));
-  setTimeout(run, 600);
+  function esc(value){return typeof escapeHtml==="function"?escapeHtml(value):String(value??"").replace(/[&<>\"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+  function inferType(message,url){let t=String(message?.attachment_type||message?.media_type||message?.mime_type||message?.type||"").toLowerCase();if(t.includes("/"))t=t.startsWith("image/")?"image":t.startsWith("audio/")?"audio":t.startsWith("video/")?"video":"file";if(t==="sticker")return"sticker";if(["image","audio","video","file"].includes(t))return t;const e=(String(url||"").split("?")[0].split(".").pop()||"").toLowerCase();if(["jpg","jpeg","png","gif","webp","bmp","avif"].includes(e))return"image";if(["mp3","ogg","wav","m4a","opus","aac"].includes(e))return"audio";if(["mp4","webm","mov","m4v","3gp"].includes(e))return"video";return"file";}
+  function injectStyles(){if(document.getElementById("botera-conversations-media-style"))return;const s=document.createElement("style");s.id="botera-conversations-media-style";s.textContent=`body[data-page="conversations"] .message-image-link{display:block;max-width:380px;border-radius:12px;overflow:hidden;cursor:zoom-in;background:#111}body[data-page="conversations"] .message-image{display:block;max-width:100%;max-height:380px;width:auto;height:auto;object-fit:contain}body[data-page="conversations"] .message-sticker{display:block;max-width:190px;max-height:190px;object-fit:contain}body[data-page="conversations"] .message-video{display:block;width:min(380px,75vw);max-height:380px;border-radius:12px;background:#000}body[data-page="conversations"] .message-audio{display:block;max-width:360px}body[data-page="conversations"] .message-file{display:inline-flex;align-items:center;gap:8px}body[data-page="conversations"] .conversation-media-lightbox{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.9);padding:24px;cursor:zoom-out}body[data-page="conversations"] .conversation-media-lightbox img{max-width:94vw;max-height:90vh;object-fit:contain;border-radius:14px}body[data-page="conversations"] .conversation-media-lightbox-close{position:absolute;top:18px;inset-inline-end:22px;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:#10151e;color:#fff;font-size:26px;cursor:pointer}`;document.head.appendChild(s);}
+  function attachment(message){const url=message?.attachment_url||message?.media_url||message?.image_url||message?.audio_url||message?.file_url||(typeof message?.attachment==="string"&&/^https?:\/\//i.test(message.attachment)?message.attachment:null);if(!url)return null;return{url,type:inferType(message,url)};}
+  function bindLightbox(){document.querySelectorAll("#conversationThread .message-image-link").forEach(link=>{if(link.dataset.lb)return;link.dataset.lb="1";link.addEventListener("click",e=>{if(e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;e.preventDefault();const img=link.querySelector("img"),src=img?.currentSrc||img?.src||link.href;if(!src)return;const ov=document.createElement("div");ov.className="conversation-media-lightbox";const close=document.createElement("button");close.className="conversation-media-lightbox-close";close.type="button";close.textContent="×";const big=document.createElement("img");big.src=src;big.alt="مرفق";ov.append(close,big);const done=()=>{ov.remove();document.removeEventListener("keydown",key)};const key=e2=>{if(e2.key==="Escape")done()};close.onclick=done;ov.onclick=e2=>{if(e2.target===ov)done()};document.addEventListener("keydown",key);document.body.appendChild(ov);});});}
+  function enhance(){const thread=document.getElementById("conversationThread");if(!thread)return;thread.querySelectorAll("a.message-file").forEach(link=>{if(link.dataset.mediaEnhanced)return;const u=link.getAttribute("href")||"";const e=(u.split("?")[0].split(".").pop()||"").toLowerCase();if(["mp4","webm","mov","m4v","3gp"].includes(e)){const v=document.createElement("video");v.className="message-video";v.controls=true;v.playsInline=true;v.preload="metadata";v.src=u;link.replaceWith(v);}});bindLightbox();}
+  function unlock(){const input=document.getElementById("replyFileInput");if(input){input.accept="*/*";input.removeAttribute("capture");}}
+  function run(){injectStyles();unlock();enhance();}
+  const thread=document.getElementById("conversationThread");if(thread&&window.MutationObserver)new MutationObserver(()=>requestAnimationFrame(run)).observe(thread,{childList:true,subtree:true});window.addEventListener("load",()=>setTimeout(run,300));setTimeout(run,700);
+  window.BoteraConversationMedia={attachment,renderAttachment:function(a){const u=esc(a.url);if(a.type==="image"||a.type==="sticker")return `<a class="message-image-link" href="${u}" target="_blank" rel="noopener"><img class="${a.type==="sticker"?"message-sticker":"message-image"}" src="${u}" alt="${a.type==="sticker"?"ملصق":"صورة"}" loading="lazy"></a>`;if(a.type==="video")return `<video class="message-video" controls preload="metadata" playsinline src="${u}"></video>`;if(a.type==="audio")return `<audio class="message-audio" controls src="${u}"></audio>`;return `<a class="message-file" href="${u}" target="_blank" rel="noopener">📎 فتح الملف المرفق</a>`;}};
 })();
